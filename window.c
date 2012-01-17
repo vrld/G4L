@@ -121,9 +121,13 @@ int l_window_new(lua_State* L)
 	if (!is_glew_init) {
 		GLenum glew_status = glewInit();
 		if (GLEW_OK != glew_status)
-			return luaL_error(L, "Error initializing GLEW: %s\n",
+			return luaL_error(L, "Error initializing GLEW: %s",
 								glewGetErrorString(glew_status));
 		is_glew_init = 1;
+
+		// check for opengl 3.3
+		if (!GLEW_VERSION_3_3)
+			return luaL_error(L, "OpenGL version too old");
 	}
 
 	if (luaL_newmetatable(L, INTERNAL_NAME)) {
