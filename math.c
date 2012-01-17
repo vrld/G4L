@@ -650,6 +650,7 @@ static int l_mat___index(lua_State* L)
 		};
 		l_registerFunctions(L, -1, meta);
 	}
+	lua_setmetatable(L, -2);
 	
 	return 1;
 }
@@ -784,12 +785,23 @@ static int l_mat___div(lua_State* L)
 	return 1;
 }
 
+static int l_mat___concat(lua_State* L)
+{
+	mat44* a = (mat44*)luaL_checkudata(L, 1, MAT_INTERNAL_NAME);
+	mat44* b = (mat44*)l_checkmat(a->rows, a->cols, L, 2);
+
+	lua_pushcfunction(L, l_mat_new);
+	FOR_MAT(a->rows, a->cols,
+			lua_pushnumber(L, a->m[i * a->cols + k] * b->m[i * b->cols + k]));
+	lua_call(L, a->rows * a->cols, 1);
+	return 1;
+}
+
 static int l_mat___len(lua_State* L)
 {
 	mat44* m = (mat44*)lua_touserdata(L, 1);
 	lua_pushinteger(L, m->rows);
-	lua_pushinteger(L, m->cols);
-	return 2;
+	return 1;
 }
 
 static int l_mat___eq(lua_State* L)
@@ -826,6 +838,7 @@ static int l_mat___call(lua_State* L)
 	if (k < 1 || k > a->cols)
 		return luaL_error(L, "Column index out of bounds: %d (1 <= col <= %d)", k, a->cols);
 
+	--i; --k;
 	lua_pushnumber(L, a->m[i * a->cols + k]);
 	return 1;
 }
@@ -895,6 +908,8 @@ static int l_mat_get(lua_State* L)
 	if (k < 1 || k > m->cols)
 		return luaL_error(L, "Column index out of bounds: %d (1 <= col <= %d)", k, m->cols);
 
+	--i; --k;
+
 	lua_pushnumber(L, m->m[i * m->cols + k]);
 	return 1;
 }
@@ -911,20 +926,14 @@ static int l_mat_set(lua_State* L)
 	if (k < 1 || k > m->cols)
 		return luaL_error(L, "Column index out of bounds: %d (1 <= col <= %d)", k, m->cols);
 
+	--i; --k;
 	m->m[i * m->cols + k] = val;
 	return 0;
 }
 
 static int l_mat_permul(lua_State* L)
 {
-	mat44* a = (mat44*)luaL_checkudata(L, 1, MAT_INTERNAL_NAME);
-	mat44* b = (mat44*)l_checkmat(a->rows, a->cols, L, 1);
-
-	lua_pushcfunction(L, l_mat_new);
-	FOR_MAT(a->rows, a->cols,
-			lua_pushnumber(L, a->m[i * a->cols + k] * b->m[i * b->cols + k]));
-	lua_call(L, a->rows * a->cols, 1);
-	return 1;
+	return l_mat___concat(L);
 }
 
 static int l_mat_det(lua_State* L)
@@ -1030,6 +1039,7 @@ static int l_mat_new(lua_State* L)
 			{"__sub",             l_mat___sub},
 			{"__mul",             l_mat___mul},
 			{"__div",             l_mat___div},
+			{"__concat",          l_mat___concat},
 			{"__len",             l_mat___len},
 			{"__eq",              l_mat___eq},
 			{"__call",            l_mat___call},

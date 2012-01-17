@@ -300,8 +300,8 @@ int luaopen_OpenGLua(lua_State* L)
 	l_constant_reg cursor[] = {
 		{"right_arrow",          GLUT_CURSOR_RIGHT_ARROW},
 		{"left_arrow",           GLUT_CURSOR_LEFT_ARROW},
-		{"left_arrow",           GLUT_CURSOR_INFO},
-		{"left_arrow",           GLUT_CURSOR_DESTROY},
+		{"left_info",            GLUT_CURSOR_INFO},
+		{"left_destroy",         GLUT_CURSOR_DESTROY},
 		{"help",                 GLUT_CURSOR_HELP},
 		{"cycle",                GLUT_CURSOR_CYCLE},
 		{"spray",                GLUT_CURSOR_SPRAY},
@@ -366,7 +366,7 @@ int luaopen_OpenGLua(lua_State* L)
 		{NULL, 0}
 	};
 
-	l_constant_reg buffers[] = {
+	l_constant_reg buffer_bit[] = {
 		{"color",     GL_COLOR_BUFFER_BIT},
 		{"depth",     GL_DEPTH_BUFFER_BIT},
 		{"stencil",   GL_STENCIL_BUFFER_BIT},
@@ -426,8 +426,8 @@ int luaopen_OpenGLua(lua_State* L)
 	lua_setfield(L, -2, "blend");
 
 	lua_newtable(L);
-	l_registerConstants(L, -1, buffers);
-	lua_setfield(L, -2, "buffers");
+	l_registerConstants(L, -1, buffer_bit);
+	lua_setfield(L, -2, "buffer_bit");
 
 	lua_newtable(L);
 	l_registerConstants(L, -1, stencil);
