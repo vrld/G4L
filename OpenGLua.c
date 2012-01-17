@@ -1,0 +1,447 @@
+#include <lua.h>
+#include <lauxlib.h>
+#include <lualib.h>
+
+#include <GL/glew.h>
+#include <GL/glut.h>
+#include <string.h>
+
+#include "window.h"
+#include "helper.h"
+#include "math.h"
+
+static const char* TIMER_NAME = "OpenGLua.timer";
+static lua_State* LUA = NULL;
+
+inline static int _getOptColor(lua_State* L, int idx, GLfloat *c)
+{
+	if (l_isvec4(L, idx)) {
+		vec4* c = (vec4*)lua_touserdata(L, idx);
+		memcpy(c, c->v, 4 * sizeof(GLfloat));
+		return 1;
+	}
+	c[0] = luaL_checknumber(L, idx);
+	c[1] = luaL_checknumber(L, idx+1);
+	c[2] = luaL_checknumber(L, idx+2);
+	c[3] = luaL_optnumber(L, idx+3, 1.f);
+	return 4;
+}
+
+static int is_init = 0;
+static int l_initMode(lua_State* L)
+{
+	if (is_init)
+		return luaL_error(L, "Already initialized.");
+
+	unsigned int mode = 0;
+	for (int i = 1; i <= lua_gettop(L); ++i)
+		mode |= (unsigned int)luaL_checkinteger(L, i);
+
+	glutInitDisplayMode(mode);
+
+	is_init = 1;
+	return 0;
+}
+
+static int is_running = 0;
+static int l_run(lua_State* L)
+{
+	if (is_running)
+		return luaL_error(L, "OpenGLua already running.");
+
+	is_running = 1;
+	// TODO: This, but in a thread
+	glutMainLoop();
+	return 0;
+}
+
+static int l_viewport(lua_State* L)
+{
+	GLint   x = luaL_checkinteger(L, 1);
+	GLint   y = luaL_checkinteger(L, 2);
+	GLsizei w = luaL_checkinteger(L, 3);
+	GLsizei h = luaL_checkinteger(L, 4);
+
+	glViewport(x,y,w,h);
+	if (GL_NO_ERROR != glGetError())
+		return luaL_error(L, "Invalid dimensions: %ux%u", w,h);
+	return 0;
+}
+
+static int l_enable(lua_State* L)
+{
+	GLenum cap = luaL_checkinteger(L, 1);
+	glEnable(cap);
+	if (GL_NO_ERROR != glGetError())
+		return luaL_error(L, "Invalid capability");
+	return 0;
+}
+
+static int l_disable(lua_State* L)
+{
+	GLenum cap = luaL_checkinteger(L, 1);
+	glDisable(cap);
+	if (GL_NO_ERROR != glGetError())
+		return luaL_error(L, "Invalid capability");
+	return 0;
+}
+
+static int l_isEnabled(lua_State* L)
+{
+	GLenum cap = luaL_checkinteger(L, 1);
+	GLboolean enabled = glIsEnabled(cap);
+	if (GL_NO_ERROR != glGetError())
+		return luaL_error(L, "Invalid capability");
+	lua_pushvalue(L, enabled);
+	return 1;
+}
+
+static int l_clear(lua_State* L)
+{
+	GLenum c = 0;
+	for (int i = 1; i <= lua_gettop(L); ++i)
+		c |= luaL_checkinteger(L, i);
+	if (lua_gettop(L) == 0)
+		c = GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT;
+
+	glClear(c);
+	if (GL_NO_ERROR != glGetError())
+		return luaL_error(L, "Invalid buffer mask");
+	return 0;
+}
+
+static int l_clearColor(lua_State* L)
+{
+	GLfloat c[4];
+	_getOptColor(L, 1, c);
+	glClearColor(c[0], c[1], c[2], c[3]);
+	return 0;
+}
+
+static int l_clearDepth(lua_State* L)
+{
+	GLfloat d = luaL_optnumber(L, 1, 1.);
+	glClearDepth(d);
+	return 0;
+}
+
+static int l_clearStencil(lua_State* L)
+{
+	GLint s = luaL_optinteger(L, 1, 0);
+	glClearStencil(s);
+	return 0;
+}
+
+static int l_blendFunc(lua_State* L)
+{
+	GLenum sRGB, dRGB, sAlpha, dAlpha;
+	sRGB = luaL_checkinteger(L, 1);
+	dRGB = luaL_checkinteger(L, 2);
+	sAlpha = luaL_optinteger(L, 3, sRGB);
+	dAlpha = luaL_optinteger(L, 4, dRGB);
+
+	glBlendFuncSeparate(sRGB, dRGB, sAlpha, dAlpha);
+	if (GL_NO_ERROR != glGetError())
+		return luaL_error(L, "Invalid blend mode");
+	return 0;
+}
+
+static int l_blendEquation(lua_State* L)
+{
+	GLenum m = luaL_checkinteger(L, 1);
+	glBlendEquation(m);
+	if (GL_NO_ERROR != glGetError())
+		return luaL_error(L, "Invalid blend equation");
+	return 0;
+}
+
+static int l_blendColor(lua_State* L)
+{
+	assert_extension(L, ARB_imaging);
+	GLfloat c[4];
+	_getOptColor(L, 1, c);
+	glBlendColor(c[0], c[1], c[2], c[3]);
+	return 0;
+}
+
+static int l_stencilFunc(lua_State* L)
+{
+	GLenum func = luaL_checkinteger(L, 1);
+	GLint  ref  = luaL_optinteger(L, 2, 0);
+	GLuint mask = luaL_optinteger(L, 3, (GLuint)(-1));
+
+	glStencilFunc(func, ref, mask);
+	if (GL_NO_ERROR != glGetError())
+		return luaL_error(L, "Invalid stencil function");
+	return 0;
+}
+
+static int l_stencilOp(lua_State* L)
+{
+	GLenum sfail  = luaL_checkinteger(L, 1);
+	GLenum dpfail = luaL_optinteger(L, 2, GL_KEEP);
+	GLenum dppass = luaL_optinteger(L, 3, GL_KEEP);
+
+	glStencilOp(sfail, dpfail, dppass);
+	if (GL_NO_ERROR != glGetError())
+		return luaL_error(L, "Invalid stencil operation");
+	return 0;
+}
+
+static void _glut_timer_cb(int ref)
+{
+	if (NULL == LUA) return;
+	lua_State* L = LUA;
+
+	lua_pushstring(L, TIMER_NAME);
+	lua_rawget(L, LUA_REGISTRYINDEX);
+	lua_rawgeti(L, -1, ref);
+	lua_call(L, 0, 1);
+
+	// if returns number, continue timer in <number> seconds
+	// else -> stop timer
+	if (lua_isnumber(L, -1)) {
+		unsigned int msecs = (unsigned int)(lua_tonumber(L, -1) * 1000.);
+		glutTimerFunc(msecs, _glut_timer_cb, ref);
+	} else {
+		lua_pushnil(L);
+		lua_rawseti(L, -2, ref);
+	}
+
+	lua_pop(L, 2);
+}
+
+static int l_timer(lua_State* L)
+{
+	unsigned int msecs = (unsigned int)(luaL_checknumber(L, 1) * 1000.);
+	if (!lua_isfunction(L, 2))
+		return luaL_typerror(L, 2, "function");
+
+	lua_pushstring(L, TIMER_NAME);
+	lua_rawget(L, LUA_REGISTRYINDEX);
+	lua_pushvalue(L, 2);
+	int ref = luaL_ref(L, -2);
+	lua_pushvalue(L, 2);
+	lua_rawseti(L, -2, ref);
+
+	glutTimerFunc(msecs, _glut_timer_cb, ref);
+
+	return 0;
+}
+
+int luaopen_OpenGLua(lua_State* L)
+{
+	if (LUA != NULL)
+		return luaL_error(L, "OpenGLua already opened");
+	LUA = L;
+
+	luaL_Reg reg[] = {
+		{"initMode",       l_initMode},
+		{"newWindow",      l_window_new},
+		{"run",            l_run},
+		{"viewport",       l_viewport},
+		{"enable",         l_enable},
+		{"disable",        l_disable},
+		{"isEnabled",      l_isEnabled},
+		{"clear",          l_clear},
+		{"clearColor",     l_clearColor},
+		{"clearDepth",     l_clearDepth},
+		{"clearStencil",   l_clearStencil},
+		{"blendFunc",      l_blendFunc},
+		{"blendEquation",  l_blendEquation},
+		{"blendColor",     l_blendColor},
+		{"stencilFunc",    l_stencilFunc},
+		{"stencilOp",      l_stencilOp},
+		{"timer",          l_timer},
+		{NULL, NULL}
+	};
+
+	l_constant_reg mode[] = {
+		{"rgb",          GLUT_RGB},
+		{"rgba",         GLUT_RGBA},
+		{"index",        GLUT_INDEX},
+		{"single",       GLUT_SINGLE},
+		{"double",       GLUT_DOUBLE},
+		{"alpha",        GLUT_ALPHA},
+		{"depth",        GLUT_DEPTH},
+		{"stencil",      GLUT_STENCIL},
+		{"multisample",  GLUT_MULTISAMPLE},
+		{"stereo",       GLUT_STEREO},
+		{"luminance",    GLUT_LUMINANCE},
+		{NULL, 0}
+	};
+
+	l_constant_reg flags[] = {
+		{"blend",                      GL_BLEND},
+		//{"clip_distance?",             GL_CLIP_DISTANCEi}, --> figure this one out
+		{"color_logic_op",             GL_COLOR_LOGIC_OP}, // glLogicOp
+		{"cull_face",                  GL_CULL_FACE}, // glCullFace
+		{"depth_clamp",                GL_DEPTH_CLAMP}, // glDepthRange
+		{"depth_test",                 GL_DEPTH_TEST},
+		{"dither",                     GL_DITHER},
+		{"line_smooth",                GL_LINE_SMOOTH}, // glLineWidth
+		{"multisample",                GL_MULTISAMPLE}, // glSampleCoverage
+		{"polygon_offset_fill",        GL_POLYGON_OFFSET_FILL}, // glPolygonOffset
+		{"polygon_offset_line",        GL_POLYGON_OFFSET_LINE},
+		{"polygon_offset_point",       GL_POLYGON_OFFSET_POINT},
+		{"polygon_smooth",             GL_POLYGON_SMOOTH},
+		{"primitive_restart",          GL_PRIMITIVE_RESTART}, // glPrimitiveRestartIndex
+		{"sample_alpha_to_coverage",   GL_SAMPLE_ALPHA_TO_COVERAGE},
+		{"sample_alpha_to_one",        GL_SAMPLE_ALPHA_TO_ONE},
+		{"sample_coverage",            GL_SAMPLE_COVERAGE}, // glSampleCoverage
+		{"scissor_test",               GL_SCISSOR_TEST}, // glScissor
+		{"stencil_test",               GL_STENCIL_TEST},
+		{"texture_cube_map_seamless",  GL_TEXTURE_CUBE_MAP_SEAMLESS},
+		{"program_point_size",         GL_PROGRAM_POINT_SIZE},
+
+		{NULL, 0}
+	};
+
+	l_constant_reg cursor[] = {
+		{"right_arrow",          GLUT_CURSOR_RIGHT_ARROW},
+		{"left_arrow",           GLUT_CURSOR_LEFT_ARROW},
+		{"left_arrow",           GLUT_CURSOR_INFO},
+		{"left_arrow",           GLUT_CURSOR_DESTROY},
+		{"help",                 GLUT_CURSOR_HELP},
+		{"cycle",                GLUT_CURSOR_CYCLE},
+		{"spray",                GLUT_CURSOR_SPRAY},
+		{"wait",                 GLUT_CURSOR_WAIT},
+		{"text",                 GLUT_CURSOR_TEXT},
+		{"crosshair",            GLUT_CURSOR_CROSSHAIR},
+		{"up_down",              GLUT_CURSOR_UP_DOWN},
+		{"left_right",           GLUT_CURSOR_LEFT_RIGHT},
+		{"top_side",             GLUT_CURSOR_TOP_SIDE},
+		{"bottom_side",          GLUT_CURSOR_BOTTOM_SIDE},
+		{"left_side",            GLUT_CURSOR_LEFT_SIDE},
+		{"right_side",           GLUT_CURSOR_RIGHT_SIDE},
+		{"top_left_corner",      GLUT_CURSOR_TOP_LEFT_CORNER},
+		{"top_right_corner",     GLUT_CURSOR_TOP_RIGHT_CORNER},
+		{"bottom_right_corner",  GLUT_CURSOR_BOTTOM_RIGHT_CORNER},
+		{"bottom_left_corner",   GLUT_CURSOR_BOTTOM_LEFT_CORNER},
+		{"full_crosshair",       GLUT_CURSOR_FULL_CROSSHAIR},
+		{"none",                 GLUT_CURSOR_NONE},
+		{"inherit",              GLUT_CURSOR_INHERIT},
+		{NULL, 0}
+	};
+
+
+	l_constant_reg buffer_usage[] = {
+		{"stream_draw",    GL_STREAM_DRAW},
+		{"stream_read",    GL_STREAM_READ},
+		{"stream_copy",    GL_STREAM_COPY},
+		{"static_draw",    GL_STATIC_DRAW},
+		{"static_read",    GL_STATIC_READ},
+		{"static_copy",    GL_STATIC_COPY},
+		{"dynamic_draw",   GL_DYNAMIC_DRAW},
+		{"dynamic_read",   GL_DYNAMIC_READ},
+		{"dynamic_copy",   GL_DYNAMIC_COPY},
+		{NULL, 0}
+	};
+	
+	l_constant_reg blend[] = {
+		// glBlendFunc[Separate]
+		{"zero",                      GL_ZERO},
+		{"one",                       GL_ONE},
+		{"src_color",                 GL_SRC_COLOR},
+		{"one_minus_src_color",       GL_ONE_MINUS_SRC_COLOR},
+		{"dst_color",                 GL_DST_COLOR},
+		{"one_minus_dst_color",       GL_ONE_MINUS_DST_COLOR},
+		{"src_alpha",                 GL_SRC_ALPHA},
+		{"one_minus_src_alpha",       GL_ONE_MINUS_SRC_ALPHA},
+		{"dst_alpha",                 GL_DST_ALPHA},
+		{"one_minus_dst_alpha",       GL_ONE_MINUS_DST_ALPHA},
+		{"constant_color",            GL_CONSTANT_COLOR},
+		{"one_minus_constant_color",  GL_ONE_MINUS_CONSTANT_COLOR},
+		{"constant_alpha",            GL_CONSTANT_ALPHA},
+		{"one_minus_constant_alpha",  GL_ONE_MINUS_CONSTANT_ALPHA},
+		{"src_alpha_saturate",        GL_SRC_ALPHA_SATURATE},
+
+		// glBlendEquation
+		{"add",                       GL_FUNC_ADD},
+		{"subtract",                  GL_FUNC_SUBTRACT},
+		{"reverse_subtract",          GL_FUNC_REVERSE_SUBTRACT},
+		{"min",                       GL_MIN},
+		{"max",                       GL_MAX},
+
+		{NULL, 0}
+	};
+
+	l_constant_reg buffers[] = {
+		{"color",     GL_COLOR_BUFFER_BIT},
+		{"depth",     GL_DEPTH_BUFFER_BIT},
+		{"stencil",   GL_STENCIL_BUFFER_BIT},
+		{NULL, 0}
+	};
+
+	l_constant_reg stencil[] = {
+		// stencil functions
+		{"never",      GL_NEVER},
+		{"less",       GL_LESS},
+		{"lequal",     GL_LEQUAL},
+		{"greater",    GL_GREATER},
+		{"gequal",     GL_GEQUAL},
+		{"equal",      GL_EQUAL},
+		{"notequal",   GL_NOTEQUAL},
+		{"always",     GL_ALWAYS},
+
+		// stencil ops
+		{"keep",       GL_KEEP},
+		{"zero",       GL_ZERO},
+		{"replace",    GL_REPLACE},
+		{"incr",       GL_INCR},
+		{"incr_wrap",  GL_INCR_WRAP},
+		{"decr",       GL_DECR},
+		{"decr_wrap",  GL_DECR_WRAP},
+		{"invert",     GL_INVERT},
+
+		{NULL, 0}
+	};
+
+	lua_newtable(L);
+	l_registerFunctions(L, -1, reg);
+
+	// sub modules
+	luaopen_OpenGLua_math(L);
+	lua_setfield(L, -2, "math");
+
+	// constants
+	lua_newtable(L);
+	l_registerConstants(L, -1, mode);
+	lua_setfield(L, -2, "mode");
+
+	lua_newtable(L);
+	l_registerConstants(L, -1, flags);
+	lua_setfield(L, -2, "flags");
+
+	lua_newtable(L);
+	l_registerConstants(L, -1, cursor);
+	lua_setfield(L, -2, "cursor");
+
+	lua_newtable(L);
+	l_registerConstants(L, -1, buffer_usage);
+	lua_setfield(L, -2, "buffer");
+
+	lua_newtable(L);
+	l_registerConstants(L, -1, blend);
+	lua_setfield(L, -2, "blend");
+
+	lua_newtable(L);
+	l_registerConstants(L, -1, buffers);
+	lua_setfield(L, -2, "buffers");
+
+	lua_newtable(L);
+	l_registerConstants(L, -1, stencil);
+	lua_setfield(L, -2, "stencil");
+
+
+	// timer registry
+	lua_newtable(L);
+	lua_setfield(L, LUA_REGISTRYINDEX, TIMER_NAME);
+
+	// init glut
+	int argc = 0;
+	char* argv[] = {NULL};
+	glutInit(&argc, argv);
+
+	return 1;
+}
