@@ -14,14 +14,9 @@
 static const char* INTERNAL_NAME = "OpenGLua.Window";
 static const char* CALLBACKS_NAME = "OpenGLua.callbacks";
 
-static Window* active_window = NULL;
-static int is_glew_init = 0;
+static lua_State* LUA = NULL;
 
 // helper
-#define set_active(win)\
-	if (active_window != win)\
-		glutSetWindow((active_window = (win))->id)
-
 Window* l_toWindow(lua_State* L, int idx)
 {
 	return (Window*)luaL_checkudata(L, idx, INTERNAL_NAME);
@@ -35,27 +30,25 @@ Window* l_checkWindow(lua_State* L, int idx)
 	return win;
 }
 
-static inline int get_callback(Window* win, const char* name)
+static inline int get_callback(int win, const char* name)
 {
-	lua_State* L = win->L;
-
 	// get callback registry for active window
-	lua_pushstring(L, CALLBACKS_NAME);
-	lua_rawget(L, LUA_REGISTRYINDEX);
-	lua_pushinteger(L, win->id);
-	lua_rawget(L, -2);
+	lua_pushstring(LUA, CALLBACKS_NAME);
+	lua_rawget(LUA, LUA_REGISTRYINDEX);
+	lua_pushinteger(LUA, win);
+	lua_rawget(LUA, -2);
 
 	// get requested callback
-	lua_pushstring(L, name);
-	lua_rawget(L, -2);
+	lua_pushstring(LUA, name);
+	lua_rawget(LUA, -2);
 
-	int is_function = lua_isfunction(L, -1);
+	int is_function = lua_isfunction(LUA, -1);
 	if (is_function) {
 		// leave only function on stack
-		lua_replace(L, -3);
-		lua_pop(L, 1);
+		lua_replace(LUA, -3);
+		lua_pop(LUA, 1);
 	} else {
-		lua_pop(L, 3);
+		lua_pop(LUA, 3);
 	}
 	return is_function;
 }
@@ -104,8 +97,8 @@ int l_window_new(lua_State* L)
 	glutInitWindowSize(w,h);
 	glutInitWindowPosition(x,y);
 	win->id = glutCreateWindow(name);
-	win->L = L;
-	set_active(win);
+	LUA = L;
+	glutSetWindow(win->id);
 
 	glutDisplayFunc(_draw);
 	glutReshapeFunc(_reshape);
@@ -118,16 +111,17 @@ int l_window_new(lua_State* L)
 	glutPassiveMotionFunc(_passiveMotion);
 	glutEntryFunc(_entry);
 
-	if (!is_glew_init) {
+	if (!context_available()) {
 		GLenum glew_status = glewInit();
 		if (GLEW_OK != glew_status)
 			return luaL_error(L, "Error initializing GLEW: %s",
 								glewGetErrorString(glew_status));
-		is_glew_init = 1;
 
 		// check for opengl 3.3
 		if (!GLEW_VERSION_3_3)
 			return luaL_error(L, "OpenGL version too old");
+
+		context_set_available();
 	}
 
 	if (luaL_newmetatable(L, INTERNAL_NAME)) {
@@ -181,11 +175,11 @@ static int l_window___index(lua_State* L)
 	const char* key = lua_tostring(L, 2);
 
 	Window* win = l_toWindow(L, 1);
-	if (get_callback(win, key))
+	if (get_callback(win->id, key))
 		return 1;
 
-	Window* tmp = active_window;
-	set_active(win);
+	int current = glutGetWindow();
+	glutSetWindow(win->id);
 	if (0 == strcmp("pos", key)) {
 		lua_createtable(L, 2, 0);
 		lua_pushinteger(L, glutGet(GLUT_WINDOW_X));
@@ -209,7 +203,7 @@ static int l_window___index(lua_State* L)
 	} else {
 		lua_pushnil(L);
 	}
-	set_active(tmp);
+	glutSetWindow(current);
 	return 1;
 }
 
@@ -260,14 +254,13 @@ static int l_window_destroy(lua_State* L)
 	Window* win = l_checkWindow(L, 1);
 	glutDestroyWindow(win->id);
 	win->id = -1;
-	win->L = NULL;
 	return 0;
 }
 
 static int l_window_redraw(lua_State* L)
 {
 	Window* win = l_checkWindow(L, 1);
-	set_active(win);
+	glutSetWindow(win->id);
 	glutPostRedisplay();
 	return 0;
 }
@@ -275,7 +268,7 @@ static int l_window_redraw(lua_State* L)
 static int l_window_swap(lua_State* L)
 {
 	Window* win = l_checkWindow(L, 1);
-	set_active(win);
+	glutSetWindow(win->id);
 	glutSwapBuffers();
 	return 0;
 }
@@ -286,7 +279,7 @@ static int l_window_position(lua_State* L)
 	int x = luaL_checkinteger(L, 2);
 	int y = luaL_checkinteger(L, 3);
 
-	set_active(win);
+	glutSetWindow(win->id);
 	glutPositionWindow(x, y);
 	return 0;
 }
@@ -297,7 +290,7 @@ static int l_window_resize(lua_State* L)
 	int w = luaL_checkinteger(L, 2);
 	int h = luaL_checkinteger(L, 3);
 
-	set_active(win);
+	glutSetWindow(win->id);
 	glutReshapeWindow(w,h);
 	return 0;
 }
@@ -305,7 +298,7 @@ static int l_window_resize(lua_State* L)
 static int l_window_fullscreen(lua_State* L)
 {
 	Window* win = l_checkWindow(L, 1);
-	set_active(win);
+	glutSetWindow(win->id);
 	glutFullScreen();
 	return 0;
 }
@@ -313,7 +306,7 @@ static int l_window_fullscreen(lua_State* L)
 static int l_window_show(lua_State* L)
 {
 	Window* win = l_checkWindow(L, 1);
-	set_active(win);
+	glutSetWindow(win->id);
 	glutShowWindow();
 	return 0;
 }
@@ -321,7 +314,7 @@ static int l_window_show(lua_State* L)
 static int l_window_hide(lua_State* L)
 {
 	Window* win = l_checkWindow(L, 1);
-	set_active(win);
+	glutSetWindow(win->id);
 	glutHideWindow();
 	return 0;
 }
@@ -329,7 +322,7 @@ static int l_window_hide(lua_State* L)
 static int l_window_iconify(lua_State* L)
 {
 	Window* win = l_checkWindow(L, 1);
-	set_active(win);
+	glutSetWindow(win->id);
 	glutIconifyWindow();
 	return 0;
 }
@@ -339,7 +332,7 @@ static int l_window_title(lua_State* L)
 	Window* win = l_checkWindow(L, 1);
 	const char* title = luaL_checkstring(L, 2);
 
-	set_active(win);
+	glutSetWindow(win->id);
 	glutSetWindowTitle(title);
 	return 0;
 }
@@ -348,75 +341,75 @@ static int l_window_cursor(lua_State* L)
 {
 	Window* win = l_checkWindow(L, 1);
 	int cursor = luaL_checkinteger(L, 2);
-	set_active(win);
+	glutSetWindow(win->id);
 	glutSetCursor(cursor);
 	return 0;
 }
 
 static void _draw()
 {
-	if (get_callback(active_window, "draw"))
-		lua_call(active_window->L, 0, 0);
+	if (get_callback(glutGetWindow(), "draw"))
+		lua_call(LUA, 0, 0);
 }
 
 static void _reshape(int width, int height)
 {
-	if (!get_callback(active_window, "reshape"))
+	if (!get_callback(glutGetWindow(), "reshape"))
 		return;
-	lua_pushinteger(active_window->L, width);
-	lua_pushinteger(active_window->L, height);
-	lua_call(active_window->L, 2, 0);
+	lua_pushinteger(LUA, width);
+	lua_pushinteger(LUA, height);
+	lua_call(LUA, 2, 0);
 }
 
 static void _update()
 {
-	lua_State* L = active_window->L;
+	lua_pushstring(LUA, CALLBACKS_NAME);
+	lua_rawget(LUA, LUA_REGISTRYINDEX);
+	lua_pushinteger(LUA,glutGetWindow());
+	lua_rawget(LUA, -2);
 
-	lua_pushstring(L, CALLBACKS_NAME);
-	lua_rawget(L, LUA_REGISTRYINDEX);
-	lua_pushinteger(L, active_window->id);
-	lua_rawget(L, -2);
-
-	lua_pushstring(L, "__time");
-	lua_rawget(L, -2);
-	GLfloat lasttime = lua_tonumber(L, -1);
+	lua_pushstring(LUA, "__time");
+	lua_rawget(LUA, -2);
+	GLfloat lasttime = lua_tonumber(LUA, -1);
 
 	GLfloat time     = (GLfloat)glutGet(GLUT_ELAPSED_TIME) / 1000.;
 
-	lua_pushstring(L, "update");
-	lua_rawget(L, -3);
-	if (lua_isfunction(L, -1)) {
-		lua_pushnumber(L, time - lasttime);
-		lua_call(active_window->L, 1, 0);
+	lua_pushstring(LUA, "update");
+	lua_rawget(LUA, -3);
+	if (lua_isfunction(LUA, -1)) {
+		lua_pushnumber(LUA, time - lasttime);
+		lua_call(LUA, 1, 0);
+	} else {
+		lua_pop(LUA, 1);
 	}
 
-	lua_pushstring(L, "__time");
-	lua_pushnumber(L, time);
-	lua_rawset(L, -4);
-	lua_pop(L, 2);
+	lua_pushstring(LUA, "__time");
+	lua_pushnumber(LUA, time);
+	lua_rawset(LUA, -4);
+	lua_pop(LUA, 3);
 }
 
 static void _visibility(int state)
 {
-	if (!get_callback(active_window, "visibility"))
+	if (!get_callback(glutGetWindow(), "visibility"))
 		return;
-	lua_pushboolean(active_window->L, GLUT_VISIBLE == state);
-	lua_call(active_window->L, 1, 0);
+	lua_pushboolean(LUA, GLUT_VISIBLE == state);
+	lua_call(LUA, 1, 0);
 }
 
 static void _keyboard(unsigned char key, int x, int y)
 {
-	if (!get_callback(active_window, "keyboard"))
+	if (!get_callback(glutGetWindow(), "keyboard"))
 		return;
-	lua_pushlstring(active_window->L, (const char*)(&key), 1);
-	lua_pushinteger(active_window->L, x);
-	lua_pushinteger(active_window->L, y);
-	lua_call(active_window->L, 3, 0);
+	lua_pushlstring(LUA, (const char*)(&key), 1);
+	lua_pushinteger(LUA, x);
+	lua_pushinteger(LUA, y);
+	lua_call(LUA, 3, 0);
 }
 
 static void _special(int key, int x, int y)
 {
-	if (!get_callback(active_window, "keyboard"))
+	if (!get_callback(glutGetWindow(), "keyboard"))
 		return;
 
 	const char* name;
@@ -445,19 +438,19 @@ static void _special(int key, int x, int y)
 		default:                 name = "unknown";
 	}
 
-	lua_pushstring(active_window->L, name);
-	lua_pushinteger(active_window->L, x);
-	lua_pushinteger(active_window->L, y);
-	lua_call(active_window->L, 3, 0);
+	lua_pushstring(LUA, name);
+	lua_pushinteger(LUA, x);
+	lua_pushinteger(LUA, y);
+	lua_call(LUA, 3, 0);
 }
 
 static void _mouse(int button, int status, int x, int y)
 {
 	int has_callback;
 	if (GLUT_UP == status)
-		has_callback = get_callback(active_window, "mousereleased");
+		has_callback = get_callback(glutGetWindow(), "mousereleased");
 	else
-		has_callback = get_callback(active_window, "mousepressed");
+		has_callback = get_callback(glutGetWindow(), "mousepressed");
 
 	if (!has_callback)
 		return;
@@ -470,41 +463,41 @@ static void _mouse(int button, int status, int x, int y)
 		default:                 name = "unknown";
 	}
 
-	lua_pushinteger(active_window->L, x);
-	lua_pushinteger(active_window->L, y);
-	lua_pushstring(active_window->L, name);
-	lua_call(active_window->L, 3, 0);
+	lua_pushinteger(LUA, x);
+	lua_pushinteger(LUA, y);
+	lua_pushstring(LUA, name);
+	lua_call(LUA, 3, 0);
 
 }
 
 static void _motion(int x, int y)
 {
-	if (!get_callback(active_window, "mousedrag"))
+	if (!get_callback(glutGetWindow(), "mousedrag"))
 		return;
 	// TODO: get mouse buttons
-	lua_pushinteger(active_window->L, x);
-	lua_pushinteger(active_window->L, y);
-	lua_call(active_window->L, 2, 0);
+	lua_pushinteger(LUA, x);
+	lua_pushinteger(LUA, y);
+	lua_call(LUA, 2, 0);
 }
 
 static void _passiveMotion(int x, int y)
 {
-	if (!get_callback(active_window, "mousemove"))
+	if (!get_callback(glutGetWindow(), "mousemove"))
 		return;
 
-	lua_pushinteger(active_window->L, x);
-	lua_pushinteger(active_window->L, y);
-	lua_call(active_window->L, 2, 0);
+	lua_pushinteger(LUA, x);
+	lua_pushinteger(LUA, y);
+	lua_call(LUA, 2, 0);
 }
 
 static void _entry(int state)
 {
 	int has_callback;
 	if (GLUT_LEFT == state)
-		has_callback = get_callback(active_window, "mouseleave");
+		has_callback = get_callback(glutGetWindow(), "mouseleave");
 	else
-		has_callback = get_callback(active_window, "mouseenter");
+		has_callback = get_callback(glutGetWindow(), "mouseenter");
 
 	if (has_callback)
-		lua_call(active_window->L, 0, 0);
+		lua_call(LUA, 0, 0);
 }

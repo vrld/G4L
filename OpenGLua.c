@@ -9,6 +9,8 @@
 #include "window.h"
 #include "helper.h"
 #include "math.h"
+#include "vbo.h"
+#include "shader.h"
 
 static const char* TIMER_NAME = "OpenGLua.timer";
 static lua_State* LUA = NULL;
@@ -62,6 +64,7 @@ static int l_viewport(lua_State* L)
 	GLsizei w = luaL_checkinteger(L, 3);
 	GLsizei h = luaL_checkinteger(L, 4);
 
+	glGetError();
 	glViewport(x,y,w,h);
 	if (GL_NO_ERROR != glGetError())
 		return luaL_error(L, "Invalid dimensions: %ux%u", w,h);
@@ -71,6 +74,7 @@ static int l_viewport(lua_State* L)
 static int l_enable(lua_State* L)
 {
 	GLenum cap = luaL_checkinteger(L, 1);
+	glGetError();
 	glEnable(cap);
 	if (GL_NO_ERROR != glGetError())
 		return luaL_error(L, "Invalid capability");
@@ -80,6 +84,7 @@ static int l_enable(lua_State* L)
 static int l_disable(lua_State* L)
 {
 	GLenum cap = luaL_checkinteger(L, 1);
+	glGetError();
 	glDisable(cap);
 	if (GL_NO_ERROR != glGetError())
 		return luaL_error(L, "Invalid capability");
@@ -89,6 +94,7 @@ static int l_disable(lua_State* L)
 static int l_isEnabled(lua_State* L)
 {
 	GLenum cap = luaL_checkinteger(L, 1);
+	glGetError();
 	GLboolean enabled = glIsEnabled(cap);
 	if (GL_NO_ERROR != glGetError())
 		return luaL_error(L, "Invalid capability");
@@ -104,6 +110,7 @@ static int l_clear(lua_State* L)
 	if (lua_gettop(L) == 0)
 		c = GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT;
 
+	glGetError();
 	glClear(c);
 	if (GL_NO_ERROR != glGetError())
 		return luaL_error(L, "Invalid buffer mask");
@@ -140,6 +147,7 @@ static int l_blendFunc(lua_State* L)
 	sAlpha = luaL_optinteger(L, 3, sRGB);
 	dAlpha = luaL_optinteger(L, 4, dRGB);
 
+	glGetError();
 	glBlendFuncSeparate(sRGB, dRGB, sAlpha, dAlpha);
 	if (GL_NO_ERROR != glGetError())
 		return luaL_error(L, "Invalid blend mode");
@@ -149,6 +157,7 @@ static int l_blendFunc(lua_State* L)
 static int l_blendEquation(lua_State* L)
 {
 	GLenum m = luaL_checkinteger(L, 1);
+	glGetError();
 	glBlendEquation(m);
 	if (GL_NO_ERROR != glGetError())
 		return luaL_error(L, "Invalid blend equation");
@@ -170,6 +179,7 @@ static int l_stencilFunc(lua_State* L)
 	GLint  ref  = luaL_optinteger(L, 2, 0);
 	GLuint mask = luaL_optinteger(L, 3, (GLuint)(-1));
 
+	glGetError();
 	glStencilFunc(func, ref, mask);
 	if (GL_NO_ERROR != glGetError())
 		return luaL_error(L, "Invalid stencil function");
@@ -182,6 +192,7 @@ static int l_stencilOp(lua_State* L)
 	GLenum dpfail = luaL_optinteger(L, 2, GL_KEEP);
 	GLenum dppass = luaL_optinteger(L, 3, GL_KEEP);
 
+	glGetError();
 	glStencilOp(sfail, dpfail, dppass);
 	if (GL_NO_ERROR != glGetError())
 		return luaL_error(L, "Invalid stencil operation");
@@ -239,6 +250,7 @@ int luaopen_OpenGLua(lua_State* L)
 		{"initMode",       l_initMode},
 		{"newWindow",      l_window_new},
 		{"run",            l_run},
+		{"timer",          l_timer},
 		{"viewport",       l_viewport},
 		{"enable",         l_enable},
 		{"disable",        l_disable},
@@ -252,7 +264,13 @@ int luaopen_OpenGLua(lua_State* L)
 		{"blendColor",     l_blendColor},
 		{"stencilFunc",    l_stencilFunc},
 		{"stencilOp",      l_stencilOp},
-		{"timer",          l_timer},
+
+		{"vbo",            l_vbo_new},
+		{"shader",         l_shader_new},
+		//{"setShader",      l_shader_set},
+		//{"texture",        l_texture_new},
+		//{"bindTexture",    l_texture_bind},
+
 		{NULL, NULL}
 	};
 

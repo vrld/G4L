@@ -35,3 +35,15 @@ void l_stacktrace(lua_State* L)
 		printf("%s(%s): %s\n", entry.source, entry.what, entry.name ? entry.name : entry.namewhat);
 	}
 }
+
+static int has_context = 0;
+
+int context_available()
+{
+	return has_context;
+}
+
+void context_set_available()
+{
+	has_context = 1;
+}

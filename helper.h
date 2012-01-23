@@ -13,6 +13,9 @@ void l_registerFunctions(struct lua_State* L, int idx, const struct luaL_Reg* r)
 void l_registerConstants(struct lua_State* L, int idx, const l_constant_reg* c);
 void l_stacktrace(struct lua_State* L);
 
+int context_available();
+void context_set_available();
+
 #define assert_extension(L, ext) \
 	if (!GLEW_##ext) luaL_error(L, "Extension `%s' not supported", #ext)
 
