@@ -8,7 +8,7 @@
 
 #include <stdlib.h>
 
-static const char* INTERNAL_NAME = "OpenGLua.VBO";
+static const char* INTERNAL_NAME = "G4L.VBO";
 
 vbo* l_checkvbo(lua_State* L, int idx)
 {

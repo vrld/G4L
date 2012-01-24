@@ -11,8 +11,8 @@
 #include <assert.h>
 #include <string.h>
 
-static const char* INTERNAL_NAME = "OpenGLua.Window";
-static const char* CALLBACKS_NAME = "OpenGLua.callbacks";
+static const char* INTERNAL_NAME = "G4L.Window";
+static const char* CALLBACKS_NAME = "G4L.callbacks";
 
 static lua_State* LUA = NULL;
 

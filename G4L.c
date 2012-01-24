@@ -12,7 +12,7 @@
 #include "vbo.h"
 #include "shader.h"
 
-static const char* TIMER_NAME = "OpenGLua.timer";
+static const char* TIMER_NAME = "G4L.timer";
 static lua_State* LUA = NULL;
 
 inline static int _getOptColor(lua_State* L, int idx, GLfloat *c)
@@ -49,7 +49,7 @@ static int is_running = 0;
 static int l_run(lua_State* L)
 {
 	if (is_running)
-		return luaL_error(L, "OpenGLua already running.");
+		return luaL_error(L, "G4L already running.");
 
 	is_running = 1;
 	// TODO: This, but in a thread
@@ -240,10 +240,10 @@ static int l_timer(lua_State* L)
 	return 0;
 }
 
-int luaopen_OpenGLua(lua_State* L)
+int luaopen_G4L(lua_State* L)
 {
 	if (LUA != NULL)
-		return luaL_error(L, "OpenGLua already opened");
+		return luaL_error(L, "G4L already opened");
 	LUA = L;
 
 	luaL_Reg reg[] = {
@@ -419,7 +419,7 @@ int luaopen_OpenGLua(lua_State* L)
 	l_registerFunctions(L, -1, reg);
 
 	// sub modules
-	luaopen_OpenGLua_math(L);
+	luaopen_G4L_math(L);
 	lua_setfield(L, -2, "math");
 
 	// constants

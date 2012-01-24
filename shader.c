@@ -5,7 +5,7 @@
 #include <lauxlib.h>
 #include <stdlib.h>
 
-static const char* INTERNAL_NAME = "OpenGLua.Shader";
+static const char* INTERNAL_NAME = "G4L.Shader";
 
 shader* l_checkshader(lua_State* L, int idx)
 {

@@ -7,9 +7,9 @@
 #include <string.h>
 #include <math.h>
 
-static const char* VEC_INTERNAL_NAME = "OpenGLua.math.Vector";
-static const char* MAT_INTERNAL_NAME = "OpenGLua.math.Matrix";
-static const char* MATPROXY_INTERNAL_NAME = "OpenGLua.math.Matrix.Proxy";
+static const char* VEC_INTERNAL_NAME = "G4L.math.Vector";
+static const char* MAT_INTERNAL_NAME = "G4L.math.Matrix";
+static const char* MATPROXY_INTERNAL_NAME = "G4L.math.Matrix.Proxy";
 
 int l_isvec(int n, lua_State* L, int idx)
 {
@@ -1164,7 +1164,7 @@ static int l_translate(lua_State* L)
 	return l_mat_new(L);
 }
 
-int luaopen_OpenGLua_math(lua_State* L)
+int luaopen_G4L_math(lua_State* L)
 {
 	luaL_reg mod[] = {
 		{"vec",         l_vec_new},

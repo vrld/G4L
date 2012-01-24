@@ -42,6 +42,6 @@ void* l_checkmat(int n, int k, lua_State* L, int idx);
 #define l_checkmat33(L, idx) (mat33*)(l_checkmat(3,3, L, idx))
 #define l_checkmat44(L, idx) (mat44*)(l_checkmat(4,4, L, idx))
 
-int luaopen_OpenGLua_math(lua_State* L);
+int luaopen_G4L_math(lua_State* L);
 
 #endif

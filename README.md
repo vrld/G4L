@@ -1,5 +1,5 @@
-Name pending
-------------
+G4L - Graphics for Lua
+----------------------
 
 Modern OpenGL wrapper/graphics engine for Lua.
 
@@ -22,15 +22,15 @@ Prototyping/visualizations/live coding/awesome
 
 ## Example
 
-    local gl = require 'OpenGLua'
+    local g4l = require 'G4L'
     
-    gl.initMode(gl.mode.rgba, gl.mode.double)
-    gl.clearColor(.05,.1,.3,.1)
+    g4l.initMode(g4l.mode.rgba, g4l.mode.double)
+    g4l.clearColor(.05,.1,.3,.1)
     
-    local win = gl.newWindow("OpenGLua", 800,600)
+    local win = g4l.newWindow("G4L", 800,600)
     
     function win.reshape(w,h)
-        gl.viewport(0,0, w,h)
+        g4l.viewport(0,0, w,h)
     end
     
     local frames = 0
@@ -39,45 +39,45 @@ Prototyping/visualizations/live coding/awesome
     end
     
     function win.draw()
-        gl.clear()
+        g4l.clear()
         win:swap()
     end
     
-    gl.timer(.25, function()
-        win:title('OpenGLua -- FPS: ' .. (frames * 4))
+    g4l.timer(.25, function()
+        win:title('G4L -- FPS: ' .. (frames * 4))
         frames = 0
         return .25
     end)
     
-    gl.run()
+    g4l.run()
 
 ## API
 
 ### Window management/stuff
 
-    gl.initMode(mode, ...)
-    win = gl.newWindow(title, w,h, x,y)
-    gl.run()
-    gl.timer(delay, function)
+    g4l.initMode(mode, ...)
+    win = g4l.newWindow(title, w,h, x,y)
+    g4l.run()
+    g4l.timer(delay, function)
 
 ### State machine
 
-    gl.enable(flag)
-    gl.disable(flag)
-    status = gl.isEnabled(flag)
-    gl.clearColor(vec4)
-    gl.clearColor(r,g,b, [a])
-    gl.clearDepth([depth])
-    gl.clearStencil([s])
-    gl.blendFunc(src, dst, [srcAlpha, dstAlpha])
-    gl.blendEquation(equation)
-    gl.stencilFunc(func, [ref, mask])
-    gl.stencilOp(sfail, [dpfail, dppass])
+    g4l.enable(flag)
+    g4l.disable(flag)
+    status = g4l.isEnabled(flag)
+    g4l.clearColor(vec4)
+    g4l.clearColor(r,g,b, [a])
+    g4l.clearDepth([depth])
+    g4l.clearStencil([s])
+    g4l.blendFunc(src, dst, [srcAlpha, dstAlpha])
+    g4l.blendEquation(equation)
+    g4l.stencilFunc(func, [ref, mask])
+    g4l.stencilOp(sfail, [dpfail, dppass])
 
 ### Drawing
 
-    gl.viewport(x,y, w,h)
-    gl.clear([buffer-bit, ...])
+    g4l.viewport(x,y, w,h)
+    g4l.clear([buffer-bit, ...])
 
 ### Window
 
@@ -113,9 +113,9 @@ Prototyping/visualizations/live coding/awesome
 
 #### Vectors
 
-    vec2 = gl.math.vec(x,y)
-    vec3 = gl.math.vec(x,y,z)
-    vec4 = gl.math.vec(x,y,z,w)
+    vec2 = g4l.math.vec(x,y)
+    vec3 = g4l.math.vec(x,y,z)
+    vec4 = g4l.math.vec(x,y,z,w)
 
 ##### element access
 
@@ -157,9 +157,9 @@ Prototyping/visualizations/live coding/awesome
 
 #### Matrices
 
-    mat22 = gl.math.mat(a,b, c,d)
-    mat33 = gl.math.mat(a,b,c, d,e,f, g,h,i)
-    mat44 = gl.math.mat(a,b,c,d, e,f,g,h, i,j,k,l, m,n,o,p)
+    mat22 = g4l.math.mat(a,b, c,d)
+    mat33 = g4l.math.mat(a,b,c, d,e,f, g,h,i)
+    mat44 = g4l.math.mat(a,b,c,d, e,f,g,h, i,j,k,l, m,n,o,p)
 
 ##### element access
 
@@ -199,9 +199,9 @@ Prototyping/visualizations/live coding/awesome
 
 ## Enums
 
-Corresponding to the GL\_ and GLUT\_ counterparts.
+Corresponding to the g4l\_ and g4lUT\_ counterparts.
 
-### gl.flags
+### g4l.flags
 
     blend
     color_logic_op
@@ -224,12 +224,12 @@ Corresponding to the GL\_ and GLUT\_ counterparts.
     texture_cube_map_seamless
     program_point_size
 
-### gl.mode
+### g4l.mode
 
     rgb
     rgba
     index
-    single
+    sing4le
     double
     alpha
     depth
@@ -238,7 +238,7 @@ Corresponding to the GL\_ and GLUT\_ counterparts.
     stereo
     luminance
 
-### gl.cursor
+### g4l.cursor
 
     right_arrow
     left_arrow
@@ -264,7 +264,7 @@ Corresponding to the GL\_ and GLUT\_ counterparts.
     none
     inherit
 
-### gl.buffer
+### g4l.buffer
 
     stream_draw
     stream_read
@@ -276,7 +276,7 @@ Corresponding to the GL\_ and GLUT\_ counterparts.
     dynamic_read
     dynamic_copy
 
-### gl.blend
+### g4l.blend
 
     zero
     one
@@ -301,13 +301,13 @@ Corresponding to the GL\_ and GLUT\_ counterparts.
     max
 
 
-### gl.buffer_bit
+### g4l.buffer_bit
 
     color
     depth
     stencil
 
-### gl.stencil
+### g4l.stencil
     never
     less
     lequal

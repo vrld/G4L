@@ -2,7 +2,7 @@ CC=clang
 CFLAGS=-fPIC -march=core2 --std=c99 -fomit-frame-pointer -Wall -Wextra -O2 -DNDEBUG
 LDFLAGS=-lc -lglut -lGLEW -lGL
 
-target=OpenGLua.so
+target=G4L.so
 sources=$(wildcard *.c)
 objects=$(sources:.c=.o)
 
