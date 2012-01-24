@@ -261,7 +261,34 @@ static int l_vec___pow(lua_State* L)
 // permul
 static int l_vec___concat(lua_State* L)
 {
-	vec4* a = (vec4*)lua_touserdata(L, 1);
+	// string concatenation
+	int type_arg_1 = lua_type(L, 1);
+	if (type_arg_1 == LUA_TSTRING || lua_isstring(L, 2)) {
+		lua_settop(L, 2);
+		luaL_Buffer b;
+		luaL_buffinit(L, &b);
+
+		if (type_arg_1 == LUA_TSTRING) {
+			// places tostring(arg2) at index 2
+			lua_pushcfunction(L, l_vec___tostring);
+			lua_insert(L, 2);
+			lua_call(L, 1, 1);
+			lua_pushvalue(L, 1);
+		} else {
+			// places tostring(arg1) at index 3
+			l_vec___tostring(L);
+			lua_pushvalue(L, 3);
+		}
+
+		luaL_addvalue(&b);
+		lua_pushvalue(L, 2);
+		luaL_addvalue(&b);
+		luaL_pushresult(&b );
+		return 1;
+	}
+
+	// per element multiplication
+	vec4* a = (vec4*)luaL_checkudata(L, 1, VEC_INTERNAL_NAME);
 	vec4* b = (vec4*)l_checkvec(a->dim, L, 2);
 
 	lua_pushcfunction(L, l_vec_new);
@@ -787,6 +814,32 @@ static int l_mat___div(lua_State* L)
 
 static int l_mat___concat(lua_State* L)
 {
+	int type_arg_1 = lua_type(L, 1);
+	if (type_arg_1 == LUA_TSTRING || lua_isstring(L, 2)) {
+		lua_settop(L, 2);
+		luaL_Buffer b;
+		luaL_buffinit(L, &b);
+
+		if (type_arg_1 == LUA_TSTRING) {
+			// places tostring(arg2) at index 2
+			lua_pushcfunction(L, l_mat___tostring);
+			lua_insert(L, 2);
+			lua_call(L, 1, 1);
+			lua_pushvalue(L, 1);
+		} else {
+			// places tostring(arg1) at index 3
+			l_mat___tostring(L);
+			lua_pushvalue(L, 3);
+		}
+
+		luaL_addvalue(&b);
+		lua_pushvalue(L, 2);
+		luaL_addvalue(&b);
+		luaL_pushresult(&b );
+		return 1;
+	}
+
+	// per element multiplication
 	mat44* a = (mat44*)luaL_checkudata(L, 1, MAT_INTERNAL_NAME);
 	mat44* b = (mat44*)l_checkmat(a->rows, a->cols, L, 2);
 
