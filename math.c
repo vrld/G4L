@@ -7,6 +7,10 @@
 #include <string.h>
 #include <math.h>
 
+#ifndef M_PI
+#define M_PI 3.141592653589793238462643383279
+#endif
+
 static const char* VEC_INTERNAL_NAME = "G4L.math.Vector";
 static const char* MAT_INTERNAL_NAME = "G4L.math.Matrix";
 static const char* MATPROXY_INTERNAL_NAME = "G4L.math.Matrix.Proxy";
@@ -214,7 +218,7 @@ static int l_vec___mul(lua_State* L)
 		FOR_VECTOR(a->dim,
 				lua_pushnumber(L, a->v[i] * s));
 		lua_call(L, a->dim, 1);
-		
+
 	}
 	return 1;
 }
@@ -235,15 +239,15 @@ static int l_vec___div(lua_State* L)
 // dim = 3  -->  a ^ b = a x b
 // dim = 4  -->  undefined.
 //    TODO?: a ^ b ^ c = <wedge produdct>
-//          (a1 b2 c3 - a1 b3 c2 - a2 b1 c3 + a2 b3 c1 + a3 b1 c2 - a3 b2 c1,                    
-//           a1 b2 c4 - a1 b4 c2 - a2 b1 c4 + a2 b4 c1 + a4 b1 c2 - a4 b2 c1,                    
-//           a1 b3 c4 - a1 b4 c3 - a3 b1 c4 + a3 b4 c1 + a4 b1 c3 - a4 b3 c1,                    
-//           a2 b3 c4 - a2 b4 c3 - a3 b2 c4 + a3 b4 c2 + a4 b2 c3 - a4 b3 c2       
+//          (a1 b2 c3 - a1 b3 c2 - a2 b1 c3 + a2 b3 c1 + a3 b1 c2 - a3 b2 c1,
+//           a1 b2 c4 - a1 b4 c2 - a2 b1 c4 + a2 b4 c1 + a4 b1 c2 - a4 b2 c1,
+//           a1 b3 c4 - a1 b4 c3 - a3 b1 c4 + a3 b4 c1 + a4 b1 c3 - a4 b3 c1,
+//           a2 b3 c4 - a2 b4 c3 - a3 b2 c4 + a3 b4 c2 + a4 b2 c3 - a4 b3 c2
 static int l_vec___pow(lua_State* L)
 {
 	vec4* a = (vec4*)lua_touserdata(L, 1);
 	vec4* b = (vec4*)l_checkvec(a->dim, L, 2);
-	
+
 	if (a->dim == 2) {
 		lua_pushnumber(L, a->v[0]*b->v[1] - a->v[1]*b->v[0]);
 	} else if (a->dim == 3) {
@@ -366,7 +370,7 @@ static int l_vec___le(lua_State* L)
 				lua_pushboolean(L, a->v[3] < b->v[3]);
 				break;
 			}
-		case 3: if (a->v[2] != b->v[2]) { 
+		case 3: if (a->v[2] != b->v[2]) {
 				lua_pushboolean(L, a->v[2] < b->v[2]);
 				break;
 			}
@@ -510,7 +514,7 @@ static int l_vec_projectOn(lua_State* L)
 	FOR_VECTOR(a->dim,
 			lua_pushvalue(L, s * b->v[i]));
 	lua_call(L, a->dim, 1);
-	
+
 	return 1;
 }
 
@@ -530,7 +534,7 @@ static int l_vec_mirrorOn(lua_State* L)
 	FOR_VECTOR(a->dim,
 			lua_pushvalue(L, s * b->v[i] - a->v[i]));
 	lua_call(L, a->dim, 1);
-	
+
 	return 1;
 }
 
@@ -678,14 +682,14 @@ static int l_mat___index(lua_State* L)
 		l_registerFunctions(L, -1, meta);
 	}
 	lua_setmetatable(L, -2);
-	
+
 	return 1;
 }
 
 static int l_mat___tostring(lua_State* L)
 {
 	mat44* m = (mat44*)lua_touserdata(L, 1);
-	
+
 	luaL_Buffer B;
 	luaL_buffinit(L, &B);
 	luaL_addstring(&B, "mat");
@@ -864,7 +868,7 @@ static int l_mat___eq(lua_State* L)
 		lua_pushboolean(L, 0);
 		return 1;
 	}
-		
+
 	mat44* a = (mat44*)lua_touserdata(L, 1);
 	mat44* b = (mat44*)lua_touserdata(L, 2);
 
@@ -1122,38 +1126,76 @@ static int l_mat_new(lua_State* L)
 
 ////< MODULE >//////////////////////////////////////////////////////////////////////
 
+#define __normalize_vec3(r, v) do { \
+	GLfloat l = sqrt(v[0]*v[0]+v[1]*v[1]+v[2]*v[2]); \
+	r[0]=v[0]/l; r[1]=v[1]/l; r[2]=v[2]/l; } while(0)
+#define __cross_vec3(r, a,b) do { \
+	r[0] = a[1]*b[2] - a[2]*b[1]; \
+	r[1] = a[2]*b[0] - a[0]*b[2]; \
+	r[2] = a[0]*b[1] - a[1]*b[0]; } while(0)
+
+#define MAKE_MATRIX(a,b,c,d, e,f,g,h, i,j,k,l, m,n,o,p) do {\
+	lua_settop(L, 0);     \
+	lua_pushnumber(L, a); \
+	lua_pushnumber(L, b); \
+	lua_pushnumber(L, c); \
+	lua_pushnumber(L, d); \
+                          \
+	lua_pushnumber(L, e); \
+	lua_pushnumber(L, f); \
+	lua_pushnumber(L, g); \
+	lua_pushnumber(L, h); \
+                          \
+	lua_pushnumber(L, i); \
+	lua_pushnumber(L, j); \
+	lua_pushnumber(L, k); \
+	lua_pushnumber(L, l); \
+	                      \
+	lua_pushnumber(L, m); \
+	lua_pushnumber(L, n); \
+	lua_pushnumber(L, o); \
+	lua_pushnumber(L, p); \
+	                      \
+	l_mat_new(L); } while(0)
+
+// transformation matrices
+static int l_unit(lua_State* L)
+{
+	GLfloat s = luaL_optnumber(L, 1, 1.);
+	MAKE_MATRIX(
+			 s, .0, .0, .0,
+			.0,  s, .0, .0,
+			.0, .0,  s, .0,
+			.0, .0, .0,  s);
+	return 1;
+}
+
 static int l_rotate(lua_State* L)
 {
-	GLfloat alpha = luaL_checknumber(L, 1);
-	GLfloat beta  = luaL_checknumber(L, 2);
-	GLfloat gamma = luaL_checknumber(L, 3);
-	lua_settop(L, 0);
+	vec3* axis = l_checkvec3(L, 1);
+	GLfloat phi = luaL_checknumber(L, 2);
 
-	GLfloat ca = cos(alpha), sa = sin(alpha);
-	GLfloat cb = cos(beta),  sb = sin(beta);
-	GLfloat cc = cos(gamma), sc = sin(gamma);
+	GLfloat s = sin(phi);
+	GLfloat c = cos(phi);
+	GLfloat ic = 1. - c;
 
-	lua_pushnumber(L,  cb*cc);
-	lua_pushnumber(L, -ca*cc + sa*sb*sc);
-	lua_pushnumber(L,  sa*sc + ca*sb*cc);
-	lua_pushnumber(L,  .0);
+	GLfloat a[3];
+	__normalize_vec3(a, axis->v);
 
-	lua_pushnumber(L,  cb*sc);
-	lua_pushnumber(L,  ca*cc + sa*sb*sc);
-	lua_pushnumber(L, -sa*cc + ca*sb*sc);
-	lua_pushnumber(L,  .0);
+	GLfloat uu = a[0] * a[0];
+	GLfloat vv = a[1] * a[1];
+	GLfloat ww = a[2] * a[2];
 
-	lua_pushnumber(L, -sb);
-	lua_pushnumber(L,  sa*cb);
-	lua_pushnumber(L,  ca*cb);
-	lua_pushnumber(L,  .0);
+	GLfloat uv = a[0] * a[1];
+	GLfloat uw = a[0] * a[2];
+	GLfloat vw = a[1] * a[2];
 
-	lua_pushnumber(L,  .0);
-	lua_pushnumber(L,  .0);
-	lua_pushnumber(L,  .0);
-	lua_pushnumber(L,  1.);
-
-	return l_mat_new(L);
+	MAKE_MATRIX(
+			uu + (1.-uu)*c,  uv*ic - a[2]*s,  vw*ic + a[1]*s, .0,
+			uv*ic + a[2]*s,  vv + (1.-vv)*c,  vw*ic - a[0]*s, .0,
+			uw*ic - a[1]*s,  vw*ic + a[0]*s,  ww + (1.-ww)*c, .0,
+			            .0,              .0,              .0, 1.);
+	return 1;
 }
 
 static int l_scale(lua_State* L)
@@ -1165,73 +1207,162 @@ static int l_scale(lua_State* L)
 		sy = luaL_checknumber(L, 2);
 		sz = luaL_checknumber(L, 3);
 	}
-	lua_settop(L, 0);
-
-	lua_pushnumber(L, sx);
-	lua_pushnumber(L, .0);
-	lua_pushnumber(L, .0);
-	lua_pushnumber(L, .0);
-
-	lua_pushnumber(L, .0);
-	lua_pushnumber(L, sy);
-	lua_pushnumber(L, .0);
-	lua_pushnumber(L, .0);
-
-	lua_pushnumber(L, .0);
-	lua_pushnumber(L, .0);
-	lua_pushnumber(L, sz);
-	lua_pushnumber(L, .0);
-
-	lua_pushnumber(L, .0);
-	lua_pushnumber(L, .0);
-	lua_pushnumber(L, .0);
-	lua_pushnumber(L, 1.);
-
-	return l_mat_new(L);
+	MAKE_MATRIX(
+			sx, .0, .0, .0,
+			.0, sy, .0, .0,
+			.0, .0, sz, .0,
+			.0, .0, .0, 1.);
+	return 1;
 }
 
 static int l_translate(lua_State* L)
 {
 	vec4* v = (vec4*)luaL_checkudata(L, 1, VEC_INTERNAL_NAME);
-	lua_settop(L, 0);
+	MAKE_MATRIX(
+			1., .0, .0, v->v[0],
+			.0, 1., .0, v->v[1],
+			.0, .0, .1, v->dim > 2 ? v->v[2] : .0,
+			.0, .0, .0, v->dim > 3 ? v->v[3] : 1.);
+	return 1;
+}
 
-	lua_pushnumber(L, 1.);
-	lua_pushnumber(L, .0);
-	lua_pushnumber(L, .0);
-	lua_pushnumber(L, v->v[0]);
+// view matrices
+static int l_lookAt(lua_State* L)
+{
+	vec3* eye    = l_checkvec3(L, 1);
+	vec3* center = l_checkvec3(L, 2);
+	vec3* up     = l_checkvec3(L, 3);
 
-	lua_pushnumber(L, .0);
-	lua_pushnumber(L, 1.);
-	lua_pushnumber(L, .0);
-	lua_pushnumber(L, v->v[1]);
+	GLfloat s[3], f[3], u[3];
 
-	lua_pushnumber(L, .0);
-	lua_pushnumber(L, .0);
-	lua_pushnumber(L, 1.);
-	lua_pushnumber(L, v->dim > 2 ? v->v[2] : .0);
+	__normalize_vec3(u, up->v);
 
-	lua_pushnumber(L, .0);
-	lua_pushnumber(L, .0);
-	lua_pushnumber(L, .0);
-	lua_pushnumber(L, v->dim > 3 ? v->v[3] : 1.);
+	// forward = normalize(center - eye)
+	f[0] = center->v[0] - eye->v[0];
+	f[1] = center->v[1] - eye->v[1];
+	f[2] = center->v[2] - eye->v[2];
+	__normalize_vec3(f, f);
 
-	return l_mat_new(L);
+	// side = normalize(forward x up)
+	__cross_vec3(s, f, u);
+	__normalize_vec3(s, s);
+
+	// up = side x forward
+	__cross_vec3(u, s, f);
+
+	GLfloat *e = eye->v;
+	MAKE_MATRIX(
+			-s[0]*e[0], -u[0]*e[1], f[0]*e[2], .0,
+			-s[1]*e[0], -u[1]*e[1], f[1]*e[2], .0,
+			-s[2]*e[0], -u[2]*e[1], f[2]*e[2], .0,
+			        .0,         .0,        .0, 1.);
+	return 1;
+}
+
+// projection matrices
+static int l_ortho(lua_State* L)
+{
+	GLfloat left   = luaL_checknumber(L, 1);
+	GLfloat right  = luaL_checknumber(L, 2);
+	GLfloat bottom = luaL_checknumber(L, 3);
+	GLfloat top    = luaL_checknumber(L, 4);
+
+	if (lua_gettop(L) == 4) {
+		MAKE_MATRIX(
+				           2./(right-left),                         .0,  .0, .0,
+				                        .0,            2./(top-bottom),  .0, .0,
+				                        .0,                         .0, -1., .0,
+				-(right+left)/(right-left), -(top+bottom)/(top-bottom),  .0, 1.);
+		return 1;
+	}
+
+	GLfloat near = luaL_checknumber(L, 5);
+	GLfloat far  = luaL_checknumber(L, 6);
+	MAKE_MATRIX(
+			           2./(right-left),                         .0,                     .0, .0,
+			                        .0,            2./(top-bottom),                     .0, .0,
+			                        .0,                         .0,         -2./(far-near), .0,
+			-(right+left)/(right-left), -(top+bottom)/(top-bottom), -(far+near)/(far-near), 1.);
+	return 1;
+}
+
+static int l_perspective(lua_State* L)
+{
+	GLfloat fovy   = luaL_checknumber(L, 1);
+	GLfloat aspect = luaL_checknumber(L, 2);
+	GLfloat near   = luaL_checknumber(L, 3);
+	GLfloat far    = luaL_checknumber(L, 4);
+
+	GLfloat f = 1. / tan(fovy * M_PI / 360.);
+
+	MAKE_MATRIX(
+			f/aspect, .0,                    .0,                     .0,
+			      .0,  f,                    .0,                     .0,
+			      .0, .0, (far+near)/(near-far), 2.*near*far/(near-far),
+			      .0, .0,                   -1.,                    .0);
+	return 1;
+}
+
+static int l_frustum(lua_State* L)
+{
+	GLfloat l = luaL_checknumber(L, 1); // left
+	GLfloat r = luaL_checknumber(L, 2); // right
+	GLfloat b = luaL_checknumber(L, 3); // bottom
+	GLfloat t = luaL_checknumber(L, 4); // top
+	GLfloat n = luaL_checknumber(L, 5); // near
+	GLfloat f = luaL_checknumber(L, 6); // far
+
+	MAKE_MATRIX(
+			2*n/(r-l),        .0,     (r+l)/(r-l),          .0,
+			       .0, 2*n/(t-b), .0, (t+b)/(t-b),          .0,
+			       .0,        .0,     (n+f)/(n-f), 2*f*n/(n-f),
+			       .0,        .0,             -1.,          .0);
+	return 1;
 }
 
 int luaopen_G4L_math(lua_State* L)
 {
-	luaL_reg mod[] = {
-		{"vec",         l_vec_new},
-		{"mat",         l_mat_new},
+	luaL_reg module[] = {
+		{"vector",  l_vec_new},
+		{"matrix",  l_mat_new},
+		{NULL, NULL}
+	};
 
+	luaL_reg model[] = {
+		{"unit",        l_unit},
 		{"rotate",      l_rotate},
 		{"scale",       l_scale},
 		{"translate",   l_translate},
 		{NULL, NULL}
 	};
 
+	luaL_reg view[] = {
+		{"lookAt",      l_lookAt},
+		{NULL, NULL}
+	};
+
+	luaL_reg project[] = {
+		{"ortho",       l_ortho},
+		{"perspective", l_perspective},
+		{"frustum",     l_frustum},
+		{NULL, NULL}
+	};
+
 	lua_newtable(L);
-	l_registerFunctions(L, -1, mod);
+	l_registerFunctions(L, -1, module);
+
+	lua_newtable(L);
+	l_registerFunctions(L, -1, model);
+	lua_setfield(L, -2, "model");
+
+	lua_newtable(L);
+	l_registerFunctions(L, -1, view);
+	lua_setfield(L, -2, "view");
+
+	lua_newtable(L);
+	l_registerFunctions(L, -1, project);
+	lua_setfield(L, -2, "project");
+
 	return 1;
 }
 
