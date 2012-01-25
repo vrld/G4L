@@ -147,14 +147,11 @@ int l_window_new(lua_State* L)
 			{NULL, NULL}
 		};
 		l_registerFunctions(L, -1, reg);
-
-		lua_newtable(L);
-		lua_setfield(L, LUA_REGISTRYINDEX, CALLBACKS_NAME);
 	}
 	lua_setmetatable(L, -2);
 
 	// create callback table
-	lua_getfield(L, LUA_REGISTRYINDEX, CALLBACKS_NAME);
+	luaL_newmetatable(L, CALLBACKS_NAME);
 	lua_newtable(L);
 	lua_rawseti(L, -2, win->id);
 	lua_pop(L, 1);
@@ -363,6 +360,8 @@ static void _reshape(int width, int height)
 
 static void _update()
 {
+	int top = lua_gettop(LUA);
+
 	lua_pushstring(LUA, CALLBACKS_NAME);
 	lua_rawget(LUA, LUA_REGISTRYINDEX);
 	lua_pushinteger(LUA,glutGetWindow());
@@ -372,7 +371,7 @@ static void _update()
 	lua_rawget(LUA, -2);
 	GLfloat lasttime = lua_tonumber(LUA, -1);
 
-	GLfloat time     = (GLfloat)glutGet(GLUT_ELAPSED_TIME) / 1000.;
+	GLfloat time = (GLfloat)glutGet(GLUT_ELAPSED_TIME) / 1000.;
 
 	lua_pushstring(LUA, "update");
 	lua_rawget(LUA, -3);
@@ -386,7 +385,8 @@ static void _update()
 	lua_pushstring(LUA, "__time");
 	lua_pushnumber(LUA, time);
 	lua_rawset(LUA, -4);
-	lua_pop(LUA, 3);
+
+	lua_settop(LUA, top);
 }
 
 static void _visibility(int state)
