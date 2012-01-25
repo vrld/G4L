@@ -1266,27 +1266,27 @@ static int l_lookAt(lua_State* L)
 // projection matrices
 static int l_ortho(lua_State* L)
 {
-	GLfloat left   = luaL_checknumber(L, 1);
-	GLfloat right  = luaL_checknumber(L, 2);
-	GLfloat bottom = luaL_checknumber(L, 3);
-	GLfloat top    = luaL_checknumber(L, 4);
+	GLfloat l = luaL_checknumber(L, 1); // left
+	GLfloat r = luaL_checknumber(L, 2); // right
+	GLfloat b = luaL_checknumber(L, 3); // bottom
+	GLfloat t = luaL_checknumber(L, 4); // top
 
 	if (lua_gettop(L) == 4) {
 		MAKE_MATRIX(
-				           2./(right-left),                         .0,  .0, .0,
-				                        .0,            2./(top-bottom),  .0, .0,
-				                        .0,                         .0, -1., .0,
-				-(right+left)/(right-left), -(top+bottom)/(top-bottom),  .0, 1.);
+				2./(r-l),       .0, .0, (l+r)/(l-r),
+				      .0, 2./(t-b), .0, (b+t)/(b-t),
+				      .0,       .0, .0,         -1.,
+				      .0,       .0, .0,          1.);
 		return 1;
 	}
 
-	GLfloat near = luaL_checknumber(L, 5);
-	GLfloat far  = luaL_checknumber(L, 6);
+	GLfloat n = luaL_checknumber(L, 5); // near
+	GLfloat f = luaL_checknumber(L, 6); // far
 	MAKE_MATRIX(
-			           2./(right-left),                         .0,                     .0, .0,
-			                        .0,            2./(top-bottom),                     .0, .0,
-			                        .0,                         .0,         -2./(far-near), .0,
-			-(right+left)/(right-left), -(top+bottom)/(top-bottom), -(far+near)/(far-near), 1.);
+			2./(r-l),       .0,       .0, (l+r)/(l-r),
+			      .0, 2./(t-b),       .0, (b+t)/(b-t),
+			      .0,       .0, 2./(n-f), (n+f)/(n-f),
+			      .0,       .0,       .0,          1.);
 	return 1;
 }
 

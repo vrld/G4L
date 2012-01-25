@@ -164,13 +164,13 @@ static int l_shader___newindex(lua_State* L)
 		mat44* m = (mat44*)lua_touserdata(L, 3);
 		switch (m->rows) {
 			case 2:
-				glUniformMatrix2fv(location, 1, GL_FALSE, m->m);
+				glUniformMatrix2fv(location, 1, GL_TRUE, m->m);
 				break;
 			case 3:
-				glUniformMatrix3fv(location, 1, GL_FALSE, m->m);
+				glUniformMatrix3fv(location, 1, GL_TRUE, m->m);
 				break;
 			case 4:
-				glUniformMatrix4fv(location, 1, GL_FALSE, m->m);
+				glUniformMatrix4fv(location, 1, GL_TRUE, m->m);
 				break;
 		}
 	} else {
