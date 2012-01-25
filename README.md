@@ -59,6 +59,7 @@ Prototyping/visualizations/live coding/awesome
     win = g4l.newWindow(title, w,h, x,y)
     g4l.run()
     g4l.timer(delay, function)
+    g4l.elapsed()
 
 ### State machine
 
@@ -78,6 +79,22 @@ Prototyping/visualizations/live coding/awesome
 
     g4l.viewport(x,y, w,h)
     g4l.clear([buffer-bit, ...])
+
+### Vertex Buffer Objects
+
+    vbo = g4l.vbo([record-size, usage, initial_size])
+    vbo = vbo:push(record, [...]) -- record = {a,b,c,...}, #record = record-size
+    vbo = vbo:clear()
+    vbo = vbo:finish()
+    vbo:draw(draw_mode)
+
+### Shader
+
+    shader = g4l.shader(vertex_source, fragment_source)
+    shader:warnings()
+    shader:attribute(name, vbo, [start-index, end-index])
+    shader.<uniform> = (number|vector|matrix)
+    table = shader.<uniform>
 
 ### Window
 
@@ -113,9 +130,9 @@ Prototyping/visualizations/live coding/awesome
 
 #### Vectors
 
-    vec2 = g4l.math.vec(x,y)
-    vec3 = g4l.math.vec(x,y,z)
-    vec4 = g4l.math.vec(x,y,z,w)
+    vec2 = g4l.math.vector(x,y)
+    vec3 = g4l.math.vector(x,y,z)
+    vec4 = g4l.math.vector(x,y,z,w)
 
 ##### element access
 
@@ -154,12 +171,13 @@ Prototyping/visualizations/live coding/awesome
     vec = vec:normalize_inplace() ... has side effects!
     vec = vec:projectOn(vec)
     vec = vec:mirrorOn(vec)
+    mat = vec:diag()
 
 #### Matrices
 
-    mat22 = g4l.math.mat(a,b, c,d)
-    mat33 = g4l.math.mat(a,b,c, d,e,f, g,h,i)
-    mat44 = g4l.math.mat(a,b,c,d, e,f,g,h, i,j,k,l, m,n,o,p)
+    mat22 = g4l.math.matrix(a,b, c,d)
+    mat33 = g4l.math.matrix(a,b,c, d,e,f, g,h,i)
+    mat44 = g4l.math.matrix(a,b,c,d, e,f,g,h, i,j,k,l, m,n,o,p)
 
 ##### element access
 
@@ -197,6 +215,25 @@ Prototyping/visualizations/live coding/awesome
     mat = mat:transpose_inplace() ... has side effects!
     vec = mat:trace()
 
+#### Predefined Matrices
+
+##### Model transformation
+
+    g4l.math.model.unit([s])
+    g4l.math.model.rotate(axis, phi)
+    g4l.math.model.scale(sx, [sy, sz])
+    g4l.math.model.translate(vec)
+
+##### View transformation
+
+    g4l.math.view.lookAt(eye, center, up)
+
+##### Projection
+
+    g4l.math.project.ortho(left, right, bottom, top, [near, far])
+    g4l.math.project.perspective(fovy, aspect, [near, far])
+    g4l.math.project.frustum(left, right, bottom, top, near, far)
+
 ## Enums
 
 Corresponding to the g4l\_ and g4lUT\_ counterparts.
@@ -224,7 +261,7 @@ Corresponding to the g4l\_ and g4lUT\_ counterparts.
     texture_cube_map_seamless
     program_point_size
 
-### g4l.mode
+### g4l.screen
 
     rgb
     rgba
@@ -308,6 +345,7 @@ Corresponding to the g4l\_ and g4lUT\_ counterparts.
     stencil
 
 ### g4l.stencil
+
     never
     less
     lequal
@@ -325,3 +363,18 @@ Corresponding to the g4l\_ and g4lUT\_ counterparts.
     decr
     decr_wrap
     invert
+
+### g4l.draw_mode
+
+    points
+    lines
+    line_strip
+    line_loop
+    triangles
+    triangle_stop
+    triangle_fan
+    
+    lines_adjacency
+    line_strip_adjacency
+    triangles_adjacency
+    triangle_strip_adjacency
