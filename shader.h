@@ -11,5 +11,6 @@ typedef struct shader {
 
 shader* l_checkshader(struct lua_State* L, int idx);
 int l_shader_new(struct lua_State* L);
+int l_shader_set(struct lua_State* L);
 
 #endif

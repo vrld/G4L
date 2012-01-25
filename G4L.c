@@ -203,6 +203,7 @@ static void _glut_timer_cb(int ref)
 {
 	if (NULL == LUA) return;
 	lua_State* L = LUA;
+	int top = lua_gettop(L);
 
 	lua_pushstring(L, TIMER_NAME);
 	lua_rawget(L, LUA_REGISTRYINDEX);
@@ -215,11 +216,10 @@ static void _glut_timer_cb(int ref)
 		unsigned int msecs = (unsigned int)(lua_tonumber(L, -1) * 1000.);
 		glutTimerFunc(msecs, _glut_timer_cb, ref);
 	} else {
-		lua_pushnil(L);
 		lua_rawseti(L, -2, ref);
 	}
 
-	lua_pop(L, 2);
+	lua_settop(L, top);
 }
 
 static int l_timer(lua_State* L)
@@ -240,6 +240,13 @@ static int l_timer(lua_State* L)
 	return 0;
 }
 
+static int l_elapsed(lua_State* L)
+{
+	lua_Number elapsed = (lua_Number)glutGet(GLUT_ELAPSED_TIME) / 1000.;
+	lua_pushnumber(L, elapsed);
+	return 1;
+}
+
 int luaopen_G4L(lua_State* L)
 {
 	if (LUA != NULL)
@@ -247,10 +254,14 @@ int luaopen_G4L(lua_State* L)
 	LUA = L;
 
 	luaL_Reg reg[] = {
+		// GLUT stuff
 		{"initMode",       l_initMode},
 		{"newWindow",      l_window_new},
 		{"run",            l_run},
 		{"timer",          l_timer},
+		{"elapsed",        l_elapsed},
+
+		// OpenGL stuff
 		{"viewport",       l_viewport},
 		{"enable",         l_enable},
 		{"disable",        l_disable},
@@ -265,16 +276,17 @@ int luaopen_G4L(lua_State* L)
 		{"stencilFunc",    l_stencilFunc},
 		{"stencilOp",      l_stencilOp},
 
+		// G4L stuff
 		{"vbo",            l_vbo_new},
 		{"shader",         l_shader_new},
-		//{"setShader",      l_shader_set},
+		{"setShader",      l_shader_set},
 		//{"texture",        l_texture_new},
 		//{"bindTexture",    l_texture_bind},
 
 		{NULL, NULL}
 	};
 
-	l_constant_reg mode[] = {
+	l_constant_reg screen[] = {
 		{"rgb",          GLUT_RGB},
 		{"rgba",         GLUT_RGBA},
 		{"index",        GLUT_INDEX},
@@ -415,6 +427,23 @@ int luaopen_G4L(lua_State* L)
 		{NULL, 0}
 	};
 
+	l_constant_reg draw_mode[] = {
+		{"points",                   GL_POINTS},
+		{"lines",                    GL_LINES},
+		{"line_strip",               GL_LINE_STRIP},
+		{"line_loop",                GL_LINE_LOOP},
+		{"triangles",                GL_TRIANGLES},
+		{"triangle_strip",           GL_TRIANGLE_STRIP},
+		{"triangle_fan",             GL_TRIANGLE_FAN},
+
+		{"lines_adjacency",          GL_LINES_ADJACENCY},
+		{"line_strip_adjacency",     GL_LINE_STRIP_ADJACENCY},
+		{"triangles_adjacency",      GL_TRIANGLES_ADJACENCY},
+		{"triangle_strip_adjacency", GL_TRIANGLE_STRIP_ADJACENCY},
+
+		{NULL, 0}
+	};
+
 	lua_newtable(L);
 	l_registerFunctions(L, -1, reg);
 
@@ -424,8 +453,8 @@ int luaopen_G4L(lua_State* L)
 
 	// constants
 	lua_newtable(L);
-	l_registerConstants(L, -1, mode);
-	lua_setfield(L, -2, "mode");
+	l_registerConstants(L, -1, screen);
+	lua_setfield(L, -2, "screen");
 
 	lua_newtable(L);
 	l_registerConstants(L, -1, flags);
@@ -450,6 +479,10 @@ int luaopen_G4L(lua_State* L)
 	lua_newtable(L);
 	l_registerConstants(L, -1, stencil);
 	lua_setfield(L, -2, "stencil");
+
+	lua_newtable(L);
+	l_registerConstants(L, -1, draw_mode);
+	lua_setfield(L, -2, "draw_mode");
 
 
 	// timer registry

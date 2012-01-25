@@ -25,7 +25,7 @@ int l_isvec(int n, lua_State* L, int idx)
 	return equal && (p->dim == n);
 }
 
-inline static int l_isanyvec(lua_State* L, int idx)
+int l_isanyvec(lua_State* L, int idx)
 {
 	void* p = lua_touserdata(L, idx);
 	if (NULL == p)
@@ -53,7 +53,7 @@ int l_ismat(int i, int k, lua_State* L, int idx)
 	return equal && (p->rows == i) && (p->cols == k);
 }
 
-inline static int l_isanymat(lua_State* L, int idx)
+int l_isanymat(lua_State* L, int idx)
 {
 	void* p = lua_touserdata(L, idx);
 	if (NULL == p)

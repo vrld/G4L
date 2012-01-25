@@ -24,6 +24,7 @@ typedef mat(2,2) mat22;
 typedef mat(3,3) mat33;
 typedef mat(4,4) mat44;
 
+int l_isanyvec(lua_State* L, int idx);
 int l_isvec(int n, lua_State* L, int idx);
 void* l_checkvec(int n, lua_State* L, int idx);
 #define l_isvec2(L, idx) (vec2*)(l_isvec(2, L, idx))
@@ -33,6 +34,7 @@ void* l_checkvec(int n, lua_State* L, int idx);
 #define l_checkvec3(L, idx) (vec3*)(l_checkvec(3, L, idx))
 #define l_checkvec4(L, idx) (vec4*)(l_checkvec(4, L, idx))
 
+int l_isanymat(lua_State* L, int idx);
 int l_ismat(int n, int k, lua_State* L, int idx);
 void* l_checkmat(int n, int k, lua_State* L, int idx);
 #define l_ismat22(L, idx) (mat22*)(l_ismat(2,2, L, idx))
