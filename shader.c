@@ -186,6 +186,20 @@ static int l_shader___newindex(lua_State* L)
 	return 0;
 }
 
+static int l_shader_warnings(lua_State* L)
+{
+	shader* s = (shader*)lua_touserdata(L, 1);
+
+	GLint len = 0;
+	glGetProgramiv(s->id, GL_INFO_LOG_LENGTH, &len);
+	char* log = (char*)malloc(len+1);
+	glGetProgramInfoLog(s->id, len, NULL, log);
+	lua_pushlstring(L, log, len);
+	free(log);
+
+	return 1;
+}
+
 int l_shader_new(lua_State* L)
 {
 	if (!context_available())
@@ -267,6 +281,7 @@ int l_shader_new(lua_State* L)
 			{"__index",    l_shader___index},
 			{"__newindex", l_shader___newindex},
 			{"attribute",  l_shader_attribute},
+			{"warnings",   l_shader_warnings},
 			{NULL, NULL}
 		};
 		l_registerFunctions(L, -1, meta);
