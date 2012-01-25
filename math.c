@@ -1182,19 +1182,23 @@ static int l_rotate(lua_State* L)
 	GLfloat a[3];
 	__normalize_vec3(a, axis->v);
 
-	GLfloat uu = a[0] * a[0];
-	GLfloat vv = a[1] * a[1];
-	GLfloat ww = a[2] * a[2];
+	GLfloat x = a[0];
+	GLfloat y = a[1];
+	GLfloat z = a[2];
 
-	GLfloat uv = a[0] * a[1];
-	GLfloat uw = a[0] * a[2];
-	GLfloat vw = a[1] * a[2];
+	GLfloat xx = a[0] * a[0];
+	GLfloat yy = a[1] * a[1];
+	GLfloat zz = a[2] * a[2];
+
+	GLfloat xy = a[0] * a[1];
+	GLfloat xz = a[0] * a[2];
+	GLfloat yz = a[1] * a[2];
 
 	MAKE_MATRIX(
-			uu + (1.-uu)*c,  uv*ic - a[2]*s,  vw*ic + a[1]*s, .0,
-			uv*ic + a[2]*s,  vv + (1.-vv)*c,  vw*ic - a[0]*s, .0,
-			uw*ic - a[1]*s,  vw*ic + a[0]*s,  ww + (1.-ww)*c, .0,
-			            .0,              .0,              .0, 1.);
+			xx*ic +   c,  xy*ic - z*s,  xz*ic + y*s, .0,
+			xy*ic + z*s,  yy*ic +   c,  yz*ic - x*s, .0,
+			xz*ic - y*s,  yz*ic + x*s,  zz*ic +   c, .0,
+			         .0,           .0,           .0, 1.);
 	return 1;
 }
 
@@ -1252,10 +1256,10 @@ static int l_lookAt(lua_State* L)
 
 	GLfloat *e = eye->v;
 	MAKE_MATRIX(
-			-s[0]*e[0], -u[0]*e[1], f[0]*e[2], .0,
-			-s[1]*e[0], -u[1]*e[1], f[1]*e[2], .0,
-			-s[2]*e[0], -u[2]*e[1], f[2]*e[2], .0,
-			        .0,         .0,        .0, 1.);
+			 s[0],  s[1],  s[2], -e[0]*s[0] - e[1]*s[1] - e[2]*s[2],
+			 u[0],  u[1],  u[2], -e[0]*u[0] - e[1]*u[1] - e[2]*u[2],
+			-f[0], -f[1], -f[2],  e[0]*f[0] + e[1]*f[1] + e[2]*f[2],
+			   .0,    .0,    .0,                                 1.);
 	return 1;
 }
 
@@ -1299,7 +1303,7 @@ static int l_perspective(lua_State* L)
 			f/aspect, .0,                    .0,                     .0,
 			      .0,  f,                    .0,                     .0,
 			      .0, .0, (far+near)/(near-far), 2.*near*far/(near-far),
-			      .0, .0,                   -1.,                    .0);
+			      .0, .0,                   -1.,                     .0);
 	return 1;
 }
 
@@ -1313,10 +1317,10 @@ static int l_frustum(lua_State* L)
 	GLfloat f = luaL_checknumber(L, 6); // far
 
 	MAKE_MATRIX(
-			2*n/(r-l),        .0,     (r+l)/(r-l),          .0,
-			       .0, 2*n/(t-b), .0, (t+b)/(t-b),          .0,
-			       .0,        .0,     (n+f)/(n-f), 2*f*n/(n-f),
-			       .0,        .0,             -1.,          .0);
+			2*n/(r-l),        .0, (r+l)/(r-l),  .0,
+			       .0, 2*n/(t-b), (t+b)/(t-b),  .0,
+			       .0,        .0, (n+f)/(n-f), 2*f*n/(n-f),
+			       .0,        .0,         -1.,  .0);
 	return 1;
 }
 
