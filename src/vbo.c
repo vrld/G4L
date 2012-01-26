@@ -32,11 +32,15 @@ static int l_vbo_push(lua_State* L)
 
 	// check argument sanity
 	for (int i = 2; i <= top; ++i) {
-		if (!lua_istable(L, i))
-			return luaL_typerror(L, i, "table");
-		if (v->record_size != (GLsizei)lua_objlen(L, i))
-			return luaL_error(L, "Invalid record size in argument %d: expected %d, got %d",
-					i, v->record_size, lua_objlen(L, i));
+		if (v->record_size == 1) {
+			luaL_checknumber(L, i);
+		} else {
+			if (!lua_istable(L, i))
+				return luaL_typerror(L, i, "table");
+			else if (v->record_size != (GLsizei)lua_objlen(L, i))
+				return luaL_error(L, "Invalid record size in argument %d: expected %d, got %d",
+						i, v->record_size, lua_objlen(L, i));
+		}
 	}
 
 	// resize buffer if needed
@@ -48,6 +52,12 @@ static int l_vbo_push(lua_State* L)
 	// push arguments
 	GLfloat* data = (GLfloat*)(v->data);
 	size_t offset = v->pos * v->record_size;
+	if (v->record_size == 1) {
+		for (int i = 2; i <= top; ++i, ++v->pos, ++offset)
+			data[offset] = lua_tonumber(L, -1);
+		goto out;
+	}
+
 	for (int i = 2; i <= top; ++i, ++v->pos) {
 		for (int k = 1; k <= v->record_size; ++k, ++offset) {
 			lua_rawgeti(L, i, k);
@@ -56,6 +66,7 @@ static int l_vbo_push(lua_State* L)
 		lua_pop(L, v->record_size);
 	}
 
+out:
 	lua_settop(L, 1);
 	return 1;
 }
@@ -110,6 +121,9 @@ int l_vbo_new(lua_State* L)
 	GLsizei record_size = luaL_optinteger(L, 1, 4);
 	GLenum usage = luaL_optinteger(L, 2, GL_STATIC_DRAW);
 	GLsizei initial_size = luaL_optinteger(L, 3, 32);
+
+	if (record_size <= 0)
+		return luaL_error(L, "Invalid record size: %d", record_size);
 
 	if (initial_size <= 0)
 		return luaL_error(L, "Invalid initial size: %d", initial_size);
