@@ -80,13 +80,13 @@ Prototyping/visualizations/live coding/awesome
     g4l.viewport(x,y, w,h)
     g4l.clear([buffer-bit, ...])
 
-### Vertex Buffer Objects
+### Buffer Objects
 
-    vbo = g4l.vbo([record-size, usage, initial_size])
-    vbo = vbo:push(record, [...]) -- record = {a,b,c,...}, #record = record-size
-    vbo = vbo:clear()
-    vbo = vbo:finish()
-    vbo:draw(draw_mode)
+    buffer = g4l.vbo([record-size, target, usage, initial_size])
+    buffer = buffer:push(record, [...]) -- record = {a,b,c,...} with #record = record-size OR record = number if record-size == 1
+    buffer = buffer:clear()
+    buffer = buffer:finish()
+    buffer:draw(draw_mode)
 
 ### Shader
 

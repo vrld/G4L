@@ -1,5 +1,5 @@
 #include "shader.h"
-#include "vbo.h"
+#include "bufferobject.h"
 #include "math.h"
 #include "helper.h"
 
@@ -81,24 +81,24 @@ static int l_shader_attribute(lua_State* L)
 	}
 
 	// set attribute
-	vbo* v = l_checkvbo(L, 3);
+	bufferobject* b = l_checkbufferobject(L, 3);
 
 	int low = luaL_optint(L, 4, 1);
 	while (low <= 0)
-		low += v->record_size + 1;
+		low += b->record_size + 1;
 
-	int high = luaL_optint(L, 5, v->record_size);
+	int high = luaL_optint(L, 5, b->record_size);
 	while (high <= 0)
-		high += v->record_size + 1;
+		high += b->record_size + 1;
 
 	int span = high - low + 1;
 	if (span <= 0 || span > 4)
 		return luaL_error(L, "Invalid range: [%d:%d]. Need 1-4 elements.", low, high);
 
 	glEnableVertexAttribArray(location);
-	glBindBuffer(GL_ARRAY_BUFFER, v->id);
+	glBindBuffer(GL_ARRAY_BUFFER, b->id);
 	glVertexAttribPointer(location, span, GL_FLOAT, GL_FALSE,
-			sizeof(GLfloat) * v->record_size, (GLvoid*)(sizeof(GLfloat) * (low-1)));
+			sizeof(GLfloat) * b->record_size, (GLvoid*)(sizeof(GLfloat) * (low-1)));
 
 	lua_settop(L, 1);
 	return 1;

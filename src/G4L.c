@@ -9,7 +9,7 @@
 #include "window.h"
 #include "helper.h"
 #include "math.h"
-#include "vbo.h"
+#include "bufferobject.h"
 #include "shader.h"
 
 static const char* TIMER_NAME = "G4L.timer";
@@ -277,7 +277,7 @@ int luaopen_G4L(lua_State* L)
 		{"stencilOp",      l_stencilOp},
 
 		// G4L stuff
-		{"vbo",            l_vbo_new},
+		{"bufferobject",   l_bufferobject_new},
 		{"shader",         l_shader_new},
 		{"setShader",      l_shader_set},
 		//{"texture",        l_texture_new},
@@ -355,7 +355,19 @@ int luaopen_G4L(lua_State* L)
 	};
 
 
-	l_constant_reg buffer_usage[] = {
+	l_constant_reg buffer[] = {
+		// target
+		{"array_buffer",              GL_ARRAY_BUFFER},
+		{"copy_read_buffer",          GL_COPY_READ_BUFFER},
+		{"copy_write_buffer",         GL_COPY_WRITE_BUFFER},
+		{"element_array_buffer",      GL_ELEMENT_ARRAY_BUFFER},
+		{"pixel_pack_buffer",         GL_PIXEL_PACK_BUFFER},
+		{"pixel_unpack_buffer",       GL_PIXEL_UNPACK_BUFFER},
+		{"texture_buffer",            GL_TEXTURE_BUFFER},
+		{"transform_feedback_buffer", GL_TRANSFORM_FEEDBACK_BUFFER},
+		{"uniform_buffer",            GL_UNIFORM_BUFFER},
+
+		// usage
 		{"stream_draw",    GL_STREAM_DRAW},
 		{"stream_read",    GL_STREAM_READ},
 		{"stream_copy",    GL_STREAM_COPY},
@@ -365,6 +377,7 @@ int luaopen_G4L(lua_State* L)
 		{"dynamic_draw",   GL_DYNAMIC_DRAW},
 		{"dynamic_read",   GL_DYNAMIC_READ},
 		{"dynamic_copy",   GL_DYNAMIC_COPY},
+
 		{NULL, 0}
 	};
 	
@@ -396,7 +409,7 @@ int luaopen_G4L(lua_State* L)
 		{NULL, 0}
 	};
 
-	l_constant_reg buffer_bit[] = {
+	l_constant_reg clear_bit[] = {
 		{"color",     GL_COLOR_BUFFER_BIT},
 		{"depth",     GL_DEPTH_BUFFER_BIT},
 		{"stencil",   GL_STENCIL_BUFFER_BIT},
@@ -465,7 +478,7 @@ int luaopen_G4L(lua_State* L)
 	lua_setfield(L, -2, "cursor");
 
 	lua_newtable(L);
-	l_registerConstants(L, -1, buffer_usage);
+	l_registerConstants(L, -1, buffer);
 	lua_setfield(L, -2, "buffer");
 
 	lua_newtable(L);
@@ -473,8 +486,8 @@ int luaopen_G4L(lua_State* L)
 	lua_setfield(L, -2, "blend");
 
 	lua_newtable(L);
-	l_registerConstants(L, -1, buffer_bit);
-	lua_setfield(L, -2, "buffer_bit");
+	l_registerConstants(L, -1, clear_bit);
+	lua_setfield(L, -2, "clear_bit");
 
 	lua_newtable(L);
 	l_registerConstants(L, -1, stencil);
