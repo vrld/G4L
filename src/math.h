@@ -1,5 +1,5 @@
-#ifndef OPENGLUA_MATH_H
-#define OPENGLUA_MATH_H
+#ifndef __G4L_MATH_H
+#define __G4L_MATH_H
 
 #include <GL/glew.h>
 #include <lua.h>

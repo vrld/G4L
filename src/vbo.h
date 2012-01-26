@@ -1,5 +1,5 @@
-#ifndef OPENGLUA_VBO_H
-#define OPENGLUA_VBO_H
+#ifndef __G4L_VBO_H
+#define __G4L_VBO_H
 
 #include <GL/glew.h>
 

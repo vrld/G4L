@@ -1,5 +1,5 @@
-#ifndef OPENGLUA_SHADER_H
-#define OPENGLUA_SHADER_H
+#ifndef __G4L_SHADER_H
+#define __G4L_SHADER_H
 
 #include <GL/glew.h>
 

@@ -1,5 +1,5 @@
-#ifndef OPENGLUA_WINDOW_H
-#define OPENGLUA_WINDOW_H
+#ifndef __G4L_WINDOW_H
+#define __G4L_WINDOW_H
 
 struct lua_State;
 

@@ -1,5 +1,5 @@
-#ifndef OPENGLUA_HELPER_H
-#define OPENGLUA_HELPER_H
+#ifndef __G4L_HELPER_H
+#define __G4L_HELPER_H
 
 struct lua_State;
 struct luaL_Reg;
