@@ -3,7 +3,7 @@ CFLAGS=-fPIC -march=core2 --std=c99 -fomit-frame-pointer -Wall -Wextra -O2 -DNDE
 LDFLAGS=-lc -lglut -lGLEW -lGL
 
 target=G4L.so
-sources=$(wildcard *.c)
+sources=$(wildcard src/*.c)
 objects=$(sources:.c=.o)
 
 .PHONY: clean all
@@ -17,4 +17,4 @@ $(target): $(objects)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
-	rm $(objects) *.so
+	rm $(objects) $(target)
