@@ -73,33 +73,45 @@ static int l_viewport(lua_State* L)
 
 static int l_enable(lua_State* L)
 {
-	GLenum cap = luaL_checkinteger(L, 1);
-	glGetError();
-	glEnable(cap);
-	if (GL_NO_ERROR != glGetError())
-		return luaL_error(L, "Invalid capability");
+	int top = lua_gettop(L);
+	GLenum cap;
+	for (int i = 1; i <= top; ++i) {
+		cap = luaL_checkinteger(L, i);
+		glGetError();
+		glEnable(cap);
+		if (GL_NO_ERROR != glGetError())
+			return luaL_error(L, "Invalid capability");
+	}
 	return 0;
 }
 
 static int l_disable(lua_State* L)
 {
-	GLenum cap = luaL_checkinteger(L, 1);
-	glGetError();
-	glDisable(cap);
-	if (GL_NO_ERROR != glGetError())
-		return luaL_error(L, "Invalid capability");
+	int top = lua_gettop(L);
+	GLenum cap;
+	for (int i = 1; i <= top; ++i) {
+		cap = luaL_checkinteger(L, i);
+		glGetError();
+		glDisable(cap);
+		if (GL_NO_ERROR != glGetError())
+			return luaL_error(L, "Invalid capability");
+	}
 	return 0;
 }
 
 static int l_isEnabled(lua_State* L)
 {
-	GLenum cap = luaL_checkinteger(L, 1);
-	glGetError();
-	GLboolean enabled = glIsEnabled(cap);
-	if (GL_NO_ERROR != glGetError())
-		return luaL_error(L, "Invalid capability");
-	lua_pushvalue(L, enabled);
-	return 1;
+	int top = lua_gettop(L);
+	GLenum cap;
+	for (int i = 1; i <= top; ++i) {
+		cap = luaL_checkinteger(L, i);
+		glGetError();
+		GLboolean enabled = glIsEnabled(cap);
+		if (GL_NO_ERROR != glGetError())
+			return luaL_error(L, "Invalid capability");
+		lua_pushboolean(L, enabled);
+	}
+	return top;
 }
 
 static int l_clear(lua_State* L)
@@ -377,6 +389,16 @@ int luaopen_G4L(lua_State* L)
 		{"dynamic_draw",   GL_DYNAMIC_DRAW},
 		{"dynamic_read",   GL_DYNAMIC_READ},
 		{"dynamic_copy",   GL_DYNAMIC_COPY},
+
+		// type
+		{"byte",   GL_BYTE},
+		{"ubyte",  GL_UNSIGNED_BYTE},
+		{"short",  GL_SHORT},
+		{"ushort", GL_UNSIGNED_SHORT},
+		{"int",    GL_INT},
+		{"uint",   GL_UNSIGNED_INT},
+		{"float",  GL_FLOAT},
+		{"double", GL_DOUBLE},
 
 		{NULL, 0}
 	};
