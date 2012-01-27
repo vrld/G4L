@@ -67,27 +67,51 @@ int l_shader_set(lua_State* L)
 	return 0;
 }
 
-static int l_shader_attribute(lua_State* L)
+static int l_shader_enableAttribute(lua_State* L)
+{
+	shader* s = l_checkshader(L, 1);
+	const char* name;
+	GLint location;
+
+	for (int i = 2; i <= lua_gettop(L); ++i) {
+		name = luaL_checkstring(L, i);
+		location = get_attribute_location(L, s, name);
+		glEnableVertexAttribArray(location);
+	}
+
+	lua_settop(L, 1);
+	return 1;
+}
+
+static int l_shader_disableAttribute(lua_State* L)
+{
+	shader* s = l_checkshader(L, 1);
+	const char* name;
+	GLint location;
+
+	for (int i = 2; i <= lua_gettop(L); ++i) {
+		name = luaL_checkstring(L, i);
+		location = get_attribute_location(L, s, name);
+		glDisableVertexAttribArray(location);
+	}
+
+	lua_settop(L, 1);
+	return 1;
+}
+
+static int l_shader_bindAttribute(lua_State* L)
 {
 	shader* s = l_checkshader(L, 1);
 	const char* name = luaL_checkstring(L, 2);
 	GLint location = get_attribute_location(L, s, name);
-
-	// disable attribute
-	if (lua_isnoneornil(L, 3) || !lua_toboolean(L,3)) {
-		glDisableVertexAttribArray(location);
-		lua_settop(L, 1);
-		return 1;
-	}
-
-	// set attribute
 	bufferobject* b = l_checkbufferobject(L, 3);
-
 	int low = luaL_optint(L, 4, 1);
+	int high = luaL_optint(L, 5, b->record_size);
+	GLboolean normalize = lua_toboolean(L, 6) ? GL_TRUE : GL_FALSE;
+
 	while (low <= 0)
 		low += b->record_size + 1;
 
-	int high = luaL_optint(L, 5, b->record_size);
 	while (high <= 0)
 		high += b->record_size + 1;
 
@@ -95,15 +119,13 @@ static int l_shader_attribute(lua_State* L)
 	if (span <= 0 || span > 4)
 		return luaL_error(L, "Invalid range: [%d:%d]. Need 1-4 elements.", low, high);
 
-	glEnableVertexAttribArray(location);
-	glBindBuffer(GL_ARRAY_BUFFER, b->id);
-	glVertexAttribPointer(location, span, GL_FLOAT, GL_FALSE,
-			sizeof(GLfloat) * b->record_size, (GLvoid*)(sizeof(GLfloat) * (low-1)));
+	glBindBuffer(b->target, b->id);
+	glVertexAttribPointer(location, span, b->element_type, normalize,
+			b->element_size * b->record_size, (GLvoid*)(b->element_size * (low-1)));
 
 	lua_settop(L, 1);
 	return 1;
 }
-
 
 static int l_shader___gc(lua_State* L)
 {
@@ -280,8 +302,13 @@ int l_shader_new(lua_State* L)
 			{"__gc",       l_shader___gc},
 			{"__index",    l_shader___index},
 			{"__newindex", l_shader___newindex},
-			{"attribute",  l_shader_attribute},
 			{"warnings",   l_shader_warnings},
+
+			// attribute handling
+			{"enableAttribute",   l_shader_enableAttribute},
+			{"disableAttribute",  l_shader_disableAttribute},
+			{"bindAttribute",     l_shader_bindAttribute},
+
 			{NULL, NULL}
 		};
 		l_registerFunctions(L, -1, meta);

@@ -12,6 +12,9 @@ typedef struct bufferobject {
 	GLsizei pos;
 	GLsizei max_size;
 	GLsizei record_size;
+
+	GLenum element_type;
+	size_t element_size;
 	void* data;
 } bufferobject;
 

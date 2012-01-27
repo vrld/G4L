@@ -23,6 +23,23 @@ static int l_bufferobject___gc(lua_State* L)
 	return 0;
 }
 
+// poor mans template meta programming
+#define __bufferobject_push_polymorphic(TYPE, getterfunc, L, b) do { \
+	TYPE* data = (TYPE*)(b->data); \
+	size_t offset = b->pos * b->record_size; \
+	if (b->record_size == 1) { \
+		for (int i = 2; i <= top; ++i, ++b->pos, ++offset) \
+			data[offset] = getterfunc(L, i); \
+	} else { \
+		for (int i = 2; i <= top; ++i, ++b->pos) { \
+			for (int k = 1; k <= b->record_size; ++k, ++offset) { \
+				lua_rawgeti(L, i, k); \
+				data[offset] = getterfunc(L, -1); \
+			} \
+			lua_pop(L, b->record_size); \
+		} \
+	} } while(0)
+
 static int l_bufferobject_push(lua_State* L)
 {
 	int top = lua_gettop(L);
@@ -46,27 +63,37 @@ static int l_bufferobject_push(lua_State* L)
 	// resize buffer if needed
 	while (b->pos + (top-1) > b->max_size) {
 		b->max_size *= 2;
-		b->data = realloc(b->data, sizeof(GLfloat) * b->record_size * b->max_size);
+		b->data = realloc(b->data, b->element_size * b->record_size * b->max_size);
 	}
 
 	// push arguments
-	GLfloat* data = (GLfloat*)(b->data);
-	size_t offset = b->pos * b->record_size;
-	if (b->record_size == 1) {
-		for (int i = 2; i <= top; ++i, ++b->pos, ++offset)
-			data[offset] = lua_tonumber(L, -1);
-		goto out;
+	switch (b->element_type) {
+		case GL_BYTE:
+			__bufferobject_push_polymorphic(GLbyte, lua_tointeger, L, b);
+			break;
+		case GL_UNSIGNED_BYTE:
+			__bufferobject_push_polymorphic(GLubyte, lua_tointeger, L, b);
+			break;
+		case GL_SHORT:
+			__bufferobject_push_polymorphic(GLshort, lua_tointeger, L, b);
+			break;
+		case GL_UNSIGNED_SHORT:
+			__bufferobject_push_polymorphic(GLushort, lua_tointeger, L, b);
+			break;
+		case GL_INT:
+			__bufferobject_push_polymorphic(GLint, lua_tointeger, L, b);
+			break;
+		case GL_UNSIGNED_INT:
+			__bufferobject_push_polymorphic(GLuint, lua_tointeger, L, b);
+			break;
+		case GL_FLOAT:
+			__bufferobject_push_polymorphic(GLfloat, lua_tonumber, L, b);
+			break;
+		case GL_DOUBLE:
+			__bufferobject_push_polymorphic(GLdouble, lua_tonumber, L, b);
+			break;
 	}
 
-	for (int i = 2; i <= top; ++i, ++b->pos) {
-		for (int k = 1; k <= b->record_size; ++k, ++offset) {
-			lua_rawgeti(L, i, k);
-			data[offset] = lua_tonumber(L, -1);
-		}
-		lua_pop(L, b->record_size);
-	}
-
-out:
 	lua_settop(L, 1);
 	return 1;
 }
@@ -84,9 +111,8 @@ static int l_bufferobject_finish(lua_State* L)
 	bufferobject* b = l_checkbufferobject(L, 1);
 
 	glGetError();
-	glBindBuffer(GL_ARRAY_BUFFER, b->id);
-	glBufferData(GL_ARRAY_BUFFER,
-			sizeof(GLfloat) * b->pos * b->record_size,
+	glBindBuffer(b->target, b->id);
+	glBufferData(b->target, b->element_size * b->pos * b->record_size,
 			b->data, b->usage);
 	GLenum err = glGetError();
 	//glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -103,9 +129,18 @@ int l_bufferobject_draw(lua_State* L)
 	bufferobject* b = l_checkbufferobject(L, 1);
 	GLenum mode = luaL_checkinteger(L, 2);
 
-	glBindBuffer(GL_ARRAY_BUFFER, b->id);
+	glBindBuffer(b->target, b->id);
 	glGetError();
-	glDrawArrays(mode, 0, b->pos);
+	switch (b->target) {
+		case GL_ARRAY_BUFFER:
+			glDrawArrays(mode, 0, b->pos);
+			break;
+		case GL_ELEMENT_ARRAY_BUFFER:
+			glDrawElements(mode, b->pos, b->element_type, NULL);
+			break;
+		default:
+			return luaL_error(L, "Not implemented");
+	}
 	if (GL_INVALID_ENUM == glGetError())
 		return luaL_error(L, "Invalid draw mode");
 	return 0;
@@ -121,7 +156,8 @@ int l_bufferobject_new(lua_State* L)
 	GLsizei record_size  = luaL_optinteger(L, 1, 4);
 	GLenum target        = luaL_optinteger(L, 2, GL_ARRAY_BUFFER);
 	GLenum usage         = luaL_optinteger(L, 3, GL_STATIC_DRAW);
-	GLsizei initial_size = luaL_optinteger(L, 4, 32);
+	GLenum element_type  = luaL_optinteger(L, 4, GL_FLOAT);
+	GLsizei initial_size = luaL_optinteger(L, 5, 32);
 
 	if (record_size <= 0)
 		return luaL_error(L, "Invalid record size: %d", record_size);
@@ -156,6 +192,28 @@ int l_bufferobject_new(lua_State* L)
 			return luaL_error(L, "Invalid usage");
 	}
 
+	size_t element_size;
+	switch (element_type) {
+		case GL_BYTE:
+			element_size = sizeof(GLbyte); break;
+		case GL_UNSIGNED_BYTE:
+			element_size = sizeof(GLubyte); break;
+		case GL_SHORT:
+			element_size = sizeof(GLshort); break;
+		case GL_UNSIGNED_SHORT:
+			element_size = sizeof(GLushort); break;
+		case GL_INT:
+			element_size = sizeof(GLint); break;
+		case GL_UNSIGNED_INT:
+			element_size = sizeof(GLuint); break;
+		case GL_FLOAT:
+			element_size = sizeof(GLfloat); break;
+		case GL_DOUBLE:
+			element_size = sizeof(GLdouble); break;
+		default:
+			return luaL_error(L, "Invalid data type");
+	};
+
 	if (initial_size <= 0)
 		return luaL_error(L, "Invalid initial size: %d", initial_size);
 
@@ -172,7 +230,9 @@ int l_bufferobject_new(lua_State* L)
 	b->max_size = initial_size;
 	b->pos = 0;
 	b->record_size = record_size;
-	b->data = malloc(sizeof(GLfloat) * record_size * initial_size);
+	b->element_type = element_type;
+	b->element_size = element_size;
+	b->data = malloc(element_size * record_size * initial_size);
 
 	if (luaL_newmetatable(L, INTERNAL_NAME)) {
 		luaL_reg meta[] = {
