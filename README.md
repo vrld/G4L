@@ -92,9 +92,17 @@ Prototyping/visualizations/live coding/awesome
 
     shader = g4l.shader(vertex_source, fragment_source)
     shader:warnings()
-    shader:attribute(name, vbo, [start-index, end-index])
+
+#### Uniform access
+
     shader.<uniform> = (number|vector|matrix)
     table = shader.<uniform>
+
+#### Vertex Attributes
+
+	shader:enableAttribute(name, [...])
+	shader:disableAttribute(name, [...])
+	shader:bindAttribute(name, buffer, [min, max, normalize])
 
 ### Window
 
