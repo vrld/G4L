@@ -11,6 +11,7 @@
 #include "math.h"
 #include "bufferobject.h"
 #include "shader.h"
+#include "image.h"
 
 static const char* TIMER_NAME = "G4L.timer";
 static lua_State* LUA = NULL;
@@ -294,6 +295,7 @@ int luaopen_G4L(lua_State* L)
 		{"setShader",      l_shader_set},
 		//{"texture",        l_texture_new},
 		//{"bindTexture",    l_texture_bind},
+		{"image",          l_image_new},
 
 		{NULL, NULL}
 	};

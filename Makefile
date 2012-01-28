@@ -1,6 +1,6 @@
 CC=clang
 CFLAGS=-fPIC -march=core2 --std=c99 -fomit-frame-pointer -Wall -Wextra -O2 -DNDEBUG
-LDFLAGS=-lc -lglut -lGLEW -lGL
+LDFLAGS=-lc -lglut -lGLEW -lGL -lz -lpng -ljpeg
 
 target=G4L.so
 sources=$(wildcard src/*.c)
