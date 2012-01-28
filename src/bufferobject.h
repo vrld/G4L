@@ -1,5 +1,5 @@
-#ifndef __G4L_VBO_H
-#define __G4L_VBO_H
+#ifndef __G4L_BUFFEROBJECT_H
+#define __G4L_BUFFEROBJECT_H
 
 #include <GL/glew.h>
 
