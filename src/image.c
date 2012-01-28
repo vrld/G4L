@@ -25,27 +25,6 @@ static int l_image_map(lua_State* L)
 	if (!lua_isfunction(L, 2))
 		return luaL_typerror(L, 2, "function");
 
-	if (img->bpp == BPP_LUMINANCE_ALPHA) {
-		grey_pixel* pixel = (grey_pixel*)img->data;
-		for (int x = 0; x < img->width; ++x) {
-			for (int y = 0; y < img->height; ++y) {
-				lua_pushvalue(L, 2);
-				lua_pushinteger(L, x);
-				lua_pushinteger(L, y);
-				lua_pushnumber(L, (lua_Number)(pixel->l) / 255.);
-				lua_pushnumber(L, (lua_Number)(pixel->a) / 255.);
-				lua_call(L, 4, 2);
-
-				pixel->l = (unsigned char)(lua_tonumber(L, -2) * 255.);
-				pixel->a = (unsigned char)(lua_tonumber(L, -1) * 255.);
-
-				lua_pop(L, 1);
-				++pixel;
-			}
-		}
-		goto out;
-	}
-
 	rgba_pixel* pixel = (rgba_pixel*)img->data;
 	for (int x = 0; x < img->width; ++x) {
 		for (int y = 0; y < img->height; ++y) {
@@ -68,7 +47,6 @@ static int l_image_map(lua_State* L)
 		}
 	}
 
-out:
 	lua_settop(L, 1);
 	return 1;
 }
@@ -82,15 +60,7 @@ static int l_image_get(lua_State* L)
 	if (x < 0 || x >= img->width || y < 0 || y > img->height)
 		return luaL_error(L, "Pixel out of range: %dx%d", x,y);
 
-	void* pixel = img->data + img->bpp + x + y * img->width;
-	if (img->bpp == BPP_LUMINANCE_ALPHA) {
-		grey_pixel* p = (grey_pixel*)pixel;
-		lua_pushnumber(L, (lua_Number)(p->l) / 255.);
-		lua_pushnumber(L, (lua_Number)(p->a) / 255.);
-		return 1;
-	}
-
-	rgba_pixel* p = (rgba_pixel*)pixel;
+	rgba_pixel* p = (rgba_pixel*)(img->data + (4 * (x + y * img->width)));
 	lua_pushnumber(L, (lua_Number)(p->r) / 255.);
 	lua_pushnumber(L, (lua_Number)(p->g) / 255.);
 	lua_pushnumber(L, (lua_Number)(p->b) / 255.);
@@ -107,27 +77,15 @@ static int l_image_set(lua_State* L)
 	if (x < 0 || x >= img->width || y < 0 || y > img->height)
 		return luaL_error(L, "Pixel out of range: %dx%d", x,y);
 
-	void* pixel = img->data + img->bpp + x + y * img->width;
-	if (img->bpp == BPP_LUMINANCE_ALPHA) {
-		grey_pixel new;
-		new.l = (unsigned char)(luaL_checknumber(L, 4) * 255.);
-		new.a = (unsigned char)(luaL_checknumber(L, 5) * 255.);
-
-		grey_pixel* p = (grey_pixel*)pixel;
-		*p = new;
-		goto out;
-	}
-
 	rgba_pixel new;
 	new.r = (unsigned char)(luaL_checknumber(L, 4) * 255.);
 	new.g = (unsigned char)(luaL_checknumber(L, 5) * 255.);
 	new.b = (unsigned char)(luaL_checknumber(L, 6) * 255.);
 	new.a = (unsigned char)(luaL_checknumber(L, 7) * 255.);
 
-	rgba_pixel* p = (rgba_pixel*)pixel;
+	rgba_pixel* p = (rgba_pixel*)(img->data + (4 * (x + y * img->width)));
 	*p = new;
 
-out:
 	lua_settop(L, 1);
 	return 1;
 }
@@ -190,16 +148,11 @@ static void push_image_from_dimensions(lua_State* L)
 {
 	int w   = luaL_checkinteger(L, 1);
 	int h   = luaL_checkinteger(L, 2);
-	int bpp = luaL_optinteger(L, 3, BPP_RGBA); // BYTES (!) per pixel
-
-	if (bpp != BPP_RGBA && bpp != BPP_LUMINANCE_ALPHA)
-		luaL_error(L, "Invalid number of bytes per pixel: %d", bpp);
 
 	image* img = (image*)lua_newuserdata(L, sizeof(image));
 	img->width  = w;
 	img->height = h;
-	img->bpp    = bpp;
-	img->data   = malloc(w * h * bpp);
+	img->data   = malloc(w * h * 4);
 	// leave img->data uncleared for glitchy effects :)
 
 	if (!img->data)
@@ -215,8 +168,8 @@ typedef enum {
 // on success, return DECODE_OK
 // on format mismatch, return DECODE_WRONG_FORMAT
 // on error, push error message and return DECODE_ERR
-static decode_status _decode_png(lua_State* L, FILE* fp, int* w, int* h, int* bpp, void** data);
-static decode_status _decode_jpeg(lua_State* L, FILE* fp, int* w, int* h, int* bpp, void** data);
+static decode_status _decode_png(lua_State* L, FILE* fp, int* w, int* h, void** data);
+static decode_status _decode_jpeg(lua_State* L, FILE* fp, int* w, int* h, void** data);
 
 static void push_image_from_file(lua_State* L)
 {
@@ -226,11 +179,11 @@ static void push_image_from_file(lua_State* L)
 	if (NULL == fp)
 		luaL_error(L, "Cannot open file `%s' for reading", path);
 
-	int w, h, bpp;
+	int w, h;
 	void* data = NULL;
-	decode_status status = _decode_png(L, fp, &w, &h, &bpp, &data);
+	decode_status status = _decode_png(L, fp, &w, &h, &data);
 	if (DECODE_WRONG_FORMAT == status)
-		status = _decode_jpeg(L, fp, &w, &h, &bpp, &data);
+		status = _decode_jpeg(L, fp, &w, &h, &data);
 	fclose(fp);
 
 	if (DECODE_WRONG_FORMAT == status)
@@ -241,7 +194,6 @@ static void push_image_from_file(lua_State* L)
 	image* img = (image*)lua_newuserdata(L, sizeof(image));
 	img->width  = w;
 	img->height = h;
-	img->bpp    = bpp;
 	img->data   = data;
 }
 
@@ -255,7 +207,7 @@ static void _png_error_function(png_structp reader, png_const_charp error_msg)
 		lua_pushstring(L, error_msg);
 }
 
-static decode_status _decode_png(lua_State* L, FILE* fp, int* w, int* h, int* bpp, void** data)
+static decode_status _decode_png(lua_State* L, FILE* fp, int* w, int* h, void** data)
 {
 	png_byte signature[8];
 	if (8 != fread(signature, 1, 8, fp)) {
@@ -301,9 +253,10 @@ static decode_status _decode_png(lua_State* L, FILE* fp, int* w, int* h, int* bp
 	// normalize image to 8 bit RGBA or 8 bit LA
 	if (PNG_COLOR_TYPE_PALETTE == color_type)
 		png_set_palette_to_rgb(reader);
-	else if (PNG_COLOR_TYPE_GRAY == color_type && bdepth < 8)
-		png_set_expand_gray_1_2_4_to_8(reader);
-	else if (16 == bdepth) {
+	else if (PNG_COLOR_TYPE_GRAY == color_type)
+		png_set_gray_to_rgb(reader);
+
+	if (16 == bdepth) {
 #if PNG_LIBPNG_VER >= 10504
 		png_set_scale_16(reader);
 #else
@@ -334,7 +287,6 @@ static decode_status _decode_png(lua_State* L, FILE* fp, int* w, int* h, int* bp
 	// stuff to return
 	*w = width;
 	*h = height;
-	*bpp = bdepth / 8;
 	return DECODE_OK;
 
 error:
@@ -365,7 +317,7 @@ void _jpeg_error_function(j_common_ptr reader)
 	longjmp(err->setjmp_buffer, 1);
 }
 
-static decode_status _decode_jpeg(lua_State* L, FILE* fp, int* w, int* h, int* bpp, void** data)
+static decode_status _decode_jpeg(lua_State* L, FILE* fp, int* w, int* h, void** data)
 {
 	struct jpeg_decompress_struct reader;
 	struct _jpeg_error_mgr jerr;
@@ -384,14 +336,13 @@ static decode_status _decode_jpeg(lua_State* L, FILE* fp, int* w, int* h, int* b
 	}
 
 	jpeg_start_decompress(&reader);
-	if (JCS_RGB != reader.out_color_space) {
-		lua_pushstring(L, "Unsupported color-space. Only RGB JPEGs are supported");
+	if (JCS_RGB != reader.out_color_space || reader.output_components != 3) {
+		lua_pushstring(L, "Unsupported JPEG format: Only 8-bit RGB images are supported");
 		goto error;
 	}
 
 	*w = reader.output_width;
 	*h = reader.output_height;
-	*bpp = 4;
 	int row_stride = reader.output_width * reader.output_components;
 	JSAMPARRAY buffer = (*reader.mem->alloc_sarray)((j_common_ptr)&reader, JPOOL_IMAGE, row_stride, 1);
 	*data = malloc(sizeof(rgba_pixel) * reader.output_height * reader.output_width);
@@ -405,7 +356,7 @@ static decode_status _decode_jpeg(lua_State* L, FILE* fp, int* w, int* h, int* b
 
 		// put RGB data as RGBA
 		for (int x = 0; x < row_stride; x += reader.output_components, ++pixel) {
-			memcpy(pixel, buffer+x, 3);
+			memcpy(pixel, buffer[0]+x, 3);
 			pixel->a = 255;
 		}
 	}
