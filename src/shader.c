@@ -1,7 +1,8 @@
 #include "shader.h"
+#include "helper.h"
 #include "bufferobject.h"
 #include "math.h"
-#include "helper.h"
+#include "texture.h"
 
 #include <lua.h>
 #include <lauxlib.h>
@@ -195,13 +196,16 @@ static int l_shader___newindex(lua_State* L)
 				glUniformMatrix4fv(location, 1, GL_TRUE, m->m);
 				break;
 		}
+	} else if (l_istexture(L, 3)) {
+		texture* tex = (texture*)lua_touserdata(L, 3);
+		texture_bind(tex);
+		glUniform1i(location, tex->unit);
 	} else {
 		if (NULL != active)
 			glUseProgram(active->id);
 		return luaL_error(L, "Cannot set value %s: Unknown type `%s'.",
 				name, lua_typename(L, lua_type(L, 3)));
 	}
-	// TODO: texture
 
 	if (NULL != active)
 		glUseProgram(active->id);

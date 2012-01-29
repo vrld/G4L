@@ -12,6 +12,7 @@
 #include "bufferobject.h"
 #include "shader.h"
 #include "image.h"
+#include "texture.h"
 
 static const char* TIMER_NAME = "G4L.timer";
 static lua_State* LUA = NULL;
@@ -293,8 +294,7 @@ int luaopen_G4L(lua_State* L)
 		{"bufferobject",   l_bufferobject_new},
 		{"shader",         l_shader_new},
 		{"setShader",      l_shader_set},
-		//{"texture",        l_texture_new},
-		//{"bindTexture",    l_texture_bind},
+		{"texture",        l_texture_new},
 		{"image",          l_image_new},
 
 		{NULL, NULL}
@@ -481,6 +481,20 @@ int luaopen_G4L(lua_State* L)
 		{NULL, 0}
 	};
 
+	l_constant_reg texture_flags[] = {
+		// wrap
+		{"clamp_to_edge",   GL_CLAMP_TO_EDGE},
+		{"clamp_to_border", GL_CLAMP_TO_BORDER},
+		{"mirrored_repeat", GL_MIRRORED_REPEAT},
+		{"repeat",          GL_REPEAT},
+
+		// filter
+		{"nearest",         GL_NEAREST},
+		{"linear",          GL_LINEAR},
+
+		{NULL, 0}
+	};
+
 	lua_newtable(L);
 	l_registerFunctions(L, -1, reg);
 
@@ -516,6 +530,10 @@ int luaopen_G4L(lua_State* L)
 	lua_newtable(L);
 	l_registerConstants(L, -1, stencil);
 	lua_setfield(L, -2, "stencil");
+
+	lua_newtable(L);
+	l_registerConstants(L, -1, texture_flags);
+	lua_setfield(L, -2, "texture_flags");
 
 	lua_newtable(L);
 	l_registerConstants(L, -1, draw_mode);
