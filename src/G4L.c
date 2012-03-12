@@ -10,6 +10,7 @@
 #include "helper.h"
 #include "math.h"
 #include "bufferobject.h"
+#include "framebuffer.h"
 #include "shader.h"
 #include "image.h"
 #include "texture.h"
@@ -292,6 +293,8 @@ int luaopen_G4L(lua_State* L)
 
 		// G4L stuff
 		{"bufferobject",   l_bufferobject_new},
+		{"framebuffer",    l_framebuffer_new},
+		{"setFramebuffer", l_framebuffer_bind},
 		{"shader",         l_shader_new},
 		{"setShader",      l_shader_set},
 		{"texture",        l_texture_new},
