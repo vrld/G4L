@@ -97,6 +97,20 @@ static int l_texture_wrap(lua_State* L)
 	return 1;
 }
 
+static int l_texture_setData(lua_State* L)
+{
+	texture* tex = l_checktexture(L, 1);
+	image* img = l_checkimage(L, 2);
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, tex->id);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA,
+			(GLsizei)img->width, (GLsizei)img->height, 0,
+			GL_RGBA, GL_UNSIGNED_BYTE, img->data);
+
+	lua_settop(L, 1);
+	return 1;
+}
+
 static int l_texture___gc(lua_State* L)
 {
 	texture* tex = (texture*)lua_touserdata(L, 1);
@@ -108,15 +122,29 @@ int l_texture_new(lua_State* L)
 {
 	glGetIntegerv(GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, &unit_max);
 
-	image* img = l_checkimage(L, 1);
-	int unit = luaL_optinteger(L, 2, 1);
+	GLsizei width, height;
+	int idx_unit = 2;
+	void* data = NULL;
+	if (lua_isnumber(L, 1) && lua_isnumber(L, 2)) {
+		idx_unit++;
+		width  = lua_tonumber(L, 1);
+		height = lua_tonumber(L, 2);
+		data   = NULL;
+	} else {
+		image* img = l_checkimage(L, 1);
+		width  = img->width;
+		height = img->height;
+		data   = img->data;
+	}
+
+	int unit = luaL_optinteger(L, idx_unit, 1);
 	if (unit < 1 || unit >= unit_max)
 		return luaL_error(L, "Invalid texture unit: %d", unit);
 
-	GLenum mag_filter = luaL_optinteger(L, 3, GL_LINEAR);
-	GLenum min_filter = luaL_optinteger(L, 4, GL_LINEAR);
-	GLenum wrap_s = luaL_optinteger(L, 5, GL_REPEAT);
-	GLenum wrap_t = luaL_optinteger(L, 6, GL_REPEAT);
+	GLenum mag_filter = luaL_optinteger(L, idx_unit + 1, GL_LINEAR);
+	GLenum min_filter = luaL_optinteger(L, idx_unit + 2, GL_LINEAR);
+	GLenum wrap_s = luaL_optinteger(L, idx_unit + 3, GL_REPEAT);
+	GLenum wrap_t = luaL_optinteger(L, idx_unit + 4, GL_REPEAT);
 
 	GLuint id;
 	glGenTextures(1, &id);
@@ -128,9 +156,8 @@ int l_texture_new(lua_State* L)
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, wrap_s);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, wrap_t);
 
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA,
-			(GLsizei)img->width, (GLsizei)img->height, 0,
-			GL_RGBA, GL_UNSIGNED_BYTE, img->data);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0,
+			GL_RGBA, GL_UNSIGNED_BYTE, data);
 
 	texture* tex = lua_newuserdata(L, sizeof(texture));
 	tex->id = id;
@@ -143,6 +170,7 @@ int l_texture_new(lua_State* L)
 			{"__newinedx", l_texture___newindex},
 			{"filter",     l_texture_filter},
 			{"wrap",       l_texture_wrap},
+			{"setData",    l_texture_setData},
 
 			{NULL, NULL}
 		};
