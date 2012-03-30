@@ -17,7 +17,7 @@ bufferobject* l_checkbufferobject(lua_State* L, int idx)
 
 static int l_bufferobject___gc(lua_State* L)
 {
-	bufferobject* b = lua_touserdata(L, 1);
+	bufferobject* b = (bufferobject*)lua_touserdata(L, 1);
 	free(b->data);
 	glDeleteBuffers(1, &(b->id));
 	return 0;

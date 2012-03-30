@@ -159,7 +159,7 @@ int l_texture_new(lua_State* L)
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0,
 			GL_RGBA, GL_UNSIGNED_BYTE, data);
 
-	texture* tex = lua_newuserdata(L, sizeof(texture));
+	texture* tex = (texture*)lua_newuserdata(L, sizeof(texture));
 	tex->id = id;
 	tex->unit = unit;
 

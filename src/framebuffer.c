@@ -186,7 +186,7 @@ int l_framebuffer_new(lua_State* L)
 	}
 
 	// the user data
-	framebuffer* fbo = lua_newuserdata(L, sizeof(framebuffer));
+	framebuffer* fbo = (framebuffer*)lua_newuserdata(L, sizeof(framebuffer));
 	fbo->id = id;
 	fbo->renderbuffer = renderbuffer;
 	fbo->width = width;

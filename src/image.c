@@ -146,8 +146,8 @@ int l_image_new(lua_State* L)
 
 static void push_image_from_dimensions(lua_State* L)
 {
-	int w   = luaL_checkinteger(L, 1);
-	int h   = luaL_checkinteger(L, 2);
+	int w = luaL_checkinteger(L, 1);
+	int h = luaL_checkinteger(L, 2);
 
 	image* img = (image*)lua_newuserdata(L, sizeof(image));
 	img->width  = w;
@@ -276,7 +276,7 @@ static decode_status _decode_png(lua_State* L, FILE* fp, int* w, int* h, void** 
 		goto error;
 	}
 
-	png_bytep *rows = malloc(sizeof(png_bytep) * height);
+	png_bytep *rows = (png_bytep*)malloc(sizeof(png_bytep) * height);
 	for (png_uint_32 i = 0; i < height; ++i)
 		rows[i] = (png_byte*)*data + i * rowbytes;
 
@@ -346,7 +346,7 @@ static decode_status _decode_jpeg(lua_State* L, FILE* fp, int* w, int* h, void**
 	int row_stride = reader.output_width * reader.output_components;
 	JSAMPARRAY buffer = (*reader.mem->alloc_sarray)((j_common_ptr)&reader, JPOOL_IMAGE, row_stride, 1);
 	*data = malloc(sizeof(rgba_pixel) * reader.output_height * reader.output_width);
-	rgba_pixel* pixel = *data;
+	rgba_pixel* pixel = (rgba_pixel*)*data;
 
 	while (reader.output_scanline < reader.output_height) {
 		if (1 != jpeg_read_scanlines(&reader, buffer, 1)) {
