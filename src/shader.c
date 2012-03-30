@@ -10,12 +10,23 @@
 #include <string.h>
 
 #ifdef _MSC_VER
-#include "float.h"
-#define INFINITY (DBL_MAX+DBL_MAX)
-#define NAN (INFINITY-INFINITY)
+#  include "float.h"
+#  define INFINITY (DBL_MAX+DBL_MAX)
+#  define NAN (INFINITY-INFINITY)
 #else
-#define NAN (0./.0)
+#  define NAN (0./.0)
 #endif
+
+#ifndef APIENTRY
+#  if defined(__MINGW32__) || defined(__CYGWIN__)
+#    define APIENTRY __stdcall
+#  elif (_MSC_VER >= 800) || defined(_STDCALL_SUPPORTED) || defined(__BORLANDC__)
+#    define APIENTRY __stdcall
+#  else
+#    define APIENTRY
+#  endif
+#endif
+
 
 static shader* active = NULL;
 
@@ -24,7 +35,7 @@ static const char* UNIFORMS_NAME   = "G4L.Shader.uniforms";
 static const char* ATTRIBUTES_NAME = "G4L.Shader.attributes";
 
 static GLint get_location(lua_State*L, shader* s, const char* name,
-		const char* registry, GLint (*getter)(GLuint, const GLchar*))
+		const char* registry, GLint (APIENTRY *getter)(GLuint, const GLchar*))
 {
 	lua_pushstring(L, registry);
 	lua_rawget(L, LUA_REGISTRYINDEX);
