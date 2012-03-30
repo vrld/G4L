@@ -4,7 +4,7 @@
 #include <lua.h>
 #include <lauxlib.h>
 
-#include <GL/glew.h>
+#include <glew.h>
 
 #include <stdlib.h>
 

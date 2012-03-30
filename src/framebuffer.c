@@ -74,7 +74,7 @@ static int l_framebuffer_add_attachment(lua_State* L)
 static int l_framebuffer_is_complete(lua_State* L)
 {
 	framebuffer* fbo = l_checkframebuffer(L, 1);
-	GLenum status;
+	GLenum status = GL_FRAMEBUFFER_COMPLETE;
 
 	with_framebuffer(fbo->id) {
 		status = glCheckFramebufferStatus(GL_FRAMEBUFFER);

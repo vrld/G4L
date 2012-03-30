@@ -9,6 +9,14 @@
 #include <stdlib.h>
 #include <string.h>
 
+#ifdef _MSC_VER
+#include "float.h"
+#define INFINITY (DBL_MAX+DBL_MAX)
+#define NAN (INFINITY-INFINITY)
+#else
+#define NAN (0./.0)
+#endif
+
 static shader* active = NULL;
 
 static const char* INTERNAL_NAME   = "G4L.Shader";
@@ -148,7 +156,7 @@ static int l_shader___index(lua_State* L)
 	const char* name = luaL_checkstring(L, 2);
 	GLint location = get_uniform_location(L, s, name);
 	// NaNNaNNaNNaNNaNNaNNaNNaNNaNNaNNaNNaNNaNNaNNaNNaN Batman!
-	GLfloat params[16] = {0./.0};
+	GLfloat params[16] = {NAN};
 	glGetUniformfv(s->id, location, params);
 
 	lua_createtable(L, 16, 0);

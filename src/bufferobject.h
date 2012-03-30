@@ -1,7 +1,7 @@
 #ifndef __G4L_BUFFEROBJECT_H
 #define __G4L_BUFFEROBJECT_H
 
-#include <GL/glew.h>
+#include <glew.h>
 
 struct lua_State;
 

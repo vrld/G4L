@@ -1,7 +1,7 @@
 #ifndef __G4L_FRAMEBUFFER_H
 #define __G4L_FRAMEBUFFER_H
 
-#include <GL/glew.h>
+#include <glew.h>
 #include "texture.h"
 
 struct lua_State;

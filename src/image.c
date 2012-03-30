@@ -60,7 +60,7 @@ static int l_image_get(lua_State* L)
 	if (x < 0 || x >= img->width || y < 0 || y > img->height)
 		return luaL_error(L, "Pixel out of range: %dx%d", x,y);
 
-	rgba_pixel* p = (rgba_pixel*)(img->data + (4 * (x + y * img->width)));
+	rgba_pixel* p = (rgba_pixel*)(img->data) + (x + y * img->width);
 	lua_pushnumber(L, (lua_Number)(p->r) / 255.);
 	lua_pushnumber(L, (lua_Number)(p->g) / 255.);
 	lua_pushnumber(L, (lua_Number)(p->b) / 255.);
@@ -77,14 +77,14 @@ static int l_image_set(lua_State* L)
 	if (x < 0 || x >= img->width || y < 0 || y > img->height)
 		return luaL_error(L, "Pixel out of range: %dx%d", x,y);
 
-	rgba_pixel new;
-	new.r = (unsigned char)(luaL_checknumber(L, 4) * 255.);
-	new.g = (unsigned char)(luaL_checknumber(L, 5) * 255.);
-	new.b = (unsigned char)(luaL_checknumber(L, 6) * 255.);
-	new.a = (unsigned char)(luaL_checknumber(L, 7) * 255.);
+	rgba_pixel new_pixel;
+	new_pixel.r = (unsigned char)(luaL_checknumber(L, 4) * 255.);
+	new_pixel.g = (unsigned char)(luaL_checknumber(L, 5) * 255.);
+	new_pixel.b = (unsigned char)(luaL_checknumber(L, 6) * 255.);
+	new_pixel.a = (unsigned char)(luaL_checknumber(L, 7) * 255.);
 
-	rgba_pixel* p = (rgba_pixel*)(img->data + (4 * (x + y * img->width)));
-	*p = new;
+	rgba_pixel* p = (rgba_pixel*)(img->data) + 4 * (x + y * img->width);
+	*p = new_pixel;
 
 	lua_settop(L, 1);
 	return 1;

@@ -2,8 +2,8 @@
 #include <lauxlib.h>
 #include <lualib.h>
 
-#include <GL/glew.h>
-#include <GL/glut.h>
+#include <glew.h>
+#include <glut.h>
 #include <string.h>
 
 #include "window.h"
@@ -134,7 +134,7 @@ static int l_clear(lua_State* L)
 
 static int l_clearColor(lua_State* L)
 {
-	GLfloat c[4];
+	GLfloat c[4] = {.0f};
 	_getOptColor(L, 1, c);
 	glClearColor(c[0], c[1], c[2], c[3]);
 	return 0;
@@ -182,7 +182,7 @@ static int l_blendEquation(lua_State* L)
 static int l_blendColor(lua_State* L)
 {
 	assert_extension(L, ARB_imaging);
-	GLfloat c[4];
+	GLfloat c[4] = {.0f};
 	_getOptColor(L, 1, c);
 	glBlendColor(c[0], c[1], c[2], c[3]);
 	return 0;

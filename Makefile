@@ -1,16 +1,16 @@
 CC=clang
-CFLAGS=-fPIC -march=core2 --std=c99 -fomit-frame-pointer -Wall -Wextra -O2 -DNDEBUG
+INCLUDES=-I/usr/include/GL
+CFLAGS=-fPIC --std=c99 -fomit-frame-pointer -Wall -Wextra -Wformat -O0 -g $(INCLUDES)
 LDFLAGS=-lc -lglut -lGLEW -lGL -lz -lpng -ljpeg
 
-target=G4L.so
 sources=$(wildcard src/*.c)
 objects=$(sources:.c=.o)
 
 .PHONY: clean all
 
-all: $(target)
+all: G4L.so
 
-$(target): $(objects)
+G4L.so: $(objects)
 	$(CC) -shared -Wl,-soname,$@ -o $@ $^ $(LDFLAGS)
 
 %.o: %.c %.h
