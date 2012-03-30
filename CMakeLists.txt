@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.6)
 project(G4L)
 
-if(CMAKE_COMPILER_IS_GNU_C OR CMAKE_C_COMPILER MATCHES "(clang)")
+if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_C_COMPILER MATCHES "(clang)")
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra -pedantic -Werror -std=c99")
 elseif(CMAKE_BUILD_TOOL MATCHES "(msdev|devenv|nmake)")
 	message(FATAL_ERROR "MSVC does not support C99.")
