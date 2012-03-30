@@ -10,13 +10,17 @@ static const char* INTERNAL_NAME = "G4L.framebuffer";
 static const char* ATTACHMENTS_NAME = "G4L.framebuffer.attachments";
 
 // binds framebuffer `id' and returns previously bound framebuffer
-static GLuint switch_framebuffer(GLuint id)
+inline static GLuint switch_framebuffer(GLuint id)
 {
 	GLint previd;
 	glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &previd);
 	glBindFramebuffer(GL_FRAMEBUFFER, id);
 	return (GLuint)previd;
 }
+
+#define WITH_FRAMEBUFFER_EXPAND2(id, LINE) for (GLuint __fbo##LINE = switch_framebuffer(id); __fbo##LINE; glBindFramebuffer(GL_FRAMEBUFFER, __fbo##LINE), __fbo##LINE = 0)
+#define WITH_FRAMEBUFFER_EXPAND(id, LINE) WITH_FRAMEBUFFER_EXPAND2(id, LINE)
+#define with_framebuffer(id) WITH_FRAMEBUFFER_EXPAND(id, __LINE__)
 
 framebuffer* l_checkframebuffer(lua_State* L, int idx)
 {
@@ -57,10 +61,10 @@ static int l_framebuffer_add_attachment(lua_State* L)
 	lua_rawseti(L, -2, attachment+1);
 
 	// attach texture
-	GLuint current = switch_framebuffer(fbo->id);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + attachment,
-			GL_TEXTURE_2D, tex->id, 0);
-	glBindFramebuffer(GL_FRAMEBUFFER, current);
+	with_framebuffer(fbo->id) {
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + attachment,
+				GL_TEXTURE_2D, tex->id, 0);
+	}
 
 	// return texture object
 	lua_pop(L, 2);
@@ -70,9 +74,11 @@ static int l_framebuffer_add_attachment(lua_State* L)
 static int l_framebuffer_is_complete(lua_State* L)
 {
 	framebuffer* fbo = l_checkframebuffer(L, 1);
-	GLuint current = switch_framebuffer(fbo->id);
-	GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-	glBindFramebuffer(GL_FRAMEBUFFER, current);
+	GLenum status;
+
+	with_framebuffer(fbo->id) {
+		status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+	}
 
 	int ok = GL_FRAMEBUFFER_COMPLETE == status;
 	lua_pushboolean(L, ok);
@@ -173,10 +179,10 @@ int l_framebuffer_new(lua_State* L)
 		glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_STENCIL, width, height);
 		glBindRenderbuffer(GL_RENDERBUFFER, 0);
 
-		GLuint current = switch_framebuffer(id);
-		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_RENDERBUFFER, renderbuffer);
-		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,   GL_RENDERBUFFER, renderbuffer);
-		glBindFramebuffer(GL_FRAMEBUFFER, current);
+		with_framebuffer(id) {
+			glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_RENDERBUFFER, renderbuffer);
+			glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,   GL_RENDERBUFFER, renderbuffer);
+		}
 	}
 
 	// the user data
