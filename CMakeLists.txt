@@ -7,23 +7,20 @@ elseif(CMAKE_BUILD_TOOL MATCHES "(msdev|devenv|nmake)")
 	message(FATAL_ERROR "MSVC does not support C99.")
 endif()
 
-set(HAS_ERROR false)
+if(APPLE)
+	set(CMAKE_FIND_FRAMEWORK LAST)
+endif(APPLE)
 
-find_package(Lua51)
-find_package(OpenGL)
-find_package(GLUT)
-find_package(PNG)
-find_package(JPEG)
+if(NOT WIN32) 
+	set(CMAKE_SHARED_MODULE_PREFIX "")
+	set(CMAKE_SHARED_MODULE_SUFFIX ".so")
+endif(NOT WIN32)
 
-if(NOT LUA51_FOUND)
-	message(SEND_ERROR "Cannot find Lua")
-	set(HAS_ERROR true)
-endif(NOT LUA51_FOUND)
-
-if(NOT OPENGL_FOUND)
-	message(SEND_ERROR "Cannot find OpenGL")
-	set(HAS_ERROR true)
-endif(NOT OPENGL_FOUND)
+find_package(Lua51  REQUIRED)
+find_package(OpenGL REQUIRED)
+find_package(GLUT   REQUIRED)
+find_package(PNG    REQUIRED)
+find_package(JPEG   REQUIRED)
 
 #find GLEW
 find_path(GLEW_INCLUDE_DIR glew.h
@@ -40,54 +37,40 @@ find_path(GLEW_INCLUDE_DIR glew.h
 		/opt)
 mark_as_advanced(GLEW_INCLUDE_DIR)
 
-find_library (GLEW_LIBRARIES names GLEW
-	paths
-		/usr/lib
-		/usr/local/lib)
+FIND_LIBRARY(GLEW_LIBRARIES
+	NAMES GLEW
+	PATH_SUFFIXES lib64 lib
+	PATHS
+		~/Library/Frameworks
+		/Library/Frameworks
+		/usr/local
+		/usr
+		/sw
+		/opt/local
+		/opt/csw
+		/opt)
 mark_as_advanced(GLEW_LIBRARIES)
 
 if(NOT GLEW_INCLUDE_DIR OR NOT GLEW_LIBRARIES)
-	message(SEND_ERROR "Cannot find GLEW")
-	set(HAS_ERROR true)
+	message(FATAL_ERROR "Cannot find GLEW")
 endif(NOT GLEW_INCLUDE_DIR OR NOT GLEW_LIBRARIES)
 
-if(NOT GLUT_FOUND)
-	message(SEND_ERROR "Cannot find GLUT")
-	set(HAS_ERROR true)
-endif(NOT GLUT_FOUND)
+include_directories(
+	${OPENGL_INCLUDE_DIR}
+	${GLEW_INCLUDE_DIR}
+	${GLUT_INCLUDE_DIR}
+	${PNG_INCLUDE_DIR}
+	${JPEG_INCLUDE_DIR}
+	${LUA_INCLUDE_DIR})
 
-if(NOT PNG_FOUND)
-	message(SEND_ERROR "Cannot find libpng")
-	set(HAS_ERROR true)
-endif(NOT PNG_FOUND)
+file(GLOB SOURCES src/*.c)
+add_library(G4L SHARED ${SOURCES})
+set_target_properties(G4L PROPERTIES PREFIX "")
 
-if(NOT JPEG_FOUND)
-	message(SEND_ERROR "Cannot find libjpeg")
-	set(HAS_ERROR true)
-endif(NOT JPEG_FOUND)
-
-if(NOT HAS_ERROR)
-	include_directories(
-		${OPENGL_INCLUDE_DIR}
-		${GLEW_INCLUDE_DIR}
-		${GLUT_INCLUDE_DIR}
-		${PNG_INCLUDE_DIR}
-		${JPEG_INCLUDE_DIR}
-		${LUA_INCLUDE_DIR})
-
-	file(GLOB SOURCES src/*.c)
-	add_library(G4L SHARED ${SOURCES})
-
-	target_link_libraries(G4L
-		${OPENGL_LIBRARIES}
-		${GLEW_LIBRARIES}
-		${GLUT_LIBRARIES}
-		${PNG_LIBRARIES}
-		${JPEG_LIBRARIES}
-		${LUA_LIBRARIES}
-		)
-
-	# remove the 'lib' prefix
-	set_target_properties(G4L PROPERTIES PREFIX "")
-
-endif(NOT HAS_ERROR)
+target_link_libraries(G4L
+	${LUA_LIBRARIES}
+	${OPENGL_LIBRARIES}
+	${GLUT_LIBRARIES}
+	${GLEW_LIBRARIES}
+	${PNG_LIBRARIES}
+	${JPEG_LIBRARIES})
