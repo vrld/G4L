@@ -40,10 +40,16 @@ find_path(GLEW_INCLUDE_DIR glew.h
 		/opt)
 mark_as_advanced(GLEW_INCLUDE_DIR)
 
-if(NOT GLEW_INCLUDE_DIR)
+find_library (GLEW_LIBRARIES names GLEW
+	paths
+		/usr/lib
+		/usr/local/lib)
+mark_as_advanced(GLEW_LIBRARIES)
+
+if(NOT GLEW_INCLUDE_DIR OR NOT GLEW_LIBRARIES)
 	message(SEND_ERROR "Cannot find GLEW")
 	set(HAS_ERROR true)
-endif(NOT GLEW_INCLUDE_DIR)
+endif(NOT GLEW_INCLUDE_DIR OR NOT GLEW_LIBRARIES)
 
 if(NOT GLUT_FOUND)
 	message(SEND_ERROR "Cannot find GLUT")
@@ -60,21 +66,28 @@ if(NOT JPEG_FOUND)
 	set(HAS_ERROR true)
 endif(NOT JPEG_FOUND)
 
-
 if(NOT HAS_ERROR)
 	include_directories(
 		${OPENGL_INCLUDE_DIR}
 		${GLEW_INCLUDE_DIR}
 		${GLUT_INCLUDE_DIR}
 		${PNG_INCLUDE_DIR}
-		${JPEG_INCLUDE_DIR})
+		${JPEG_INCLUDE_DIR}
+		${LUA_INCLUDE_DIR})
 
 	file(GLOB SOURCES src/*.c)
-	add_library(G4L ${SOURCES})
+	add_library(G4L SHARED ${SOURCES})
 
 	target_link_libraries(G4L
 		${OPENGL_LIBRARIES}
+		${GLEW_LIBRARIES}
 		${GLUT_LIBRARIES}
 		${PNG_LIBRARIES}
-		${JPEG_LIBRARIES})
+		${JPEG_LIBRARIES}
+		${LUA_LIBRARIES}
+		)
+
+	# remove the 'lib' prefix
+	set_target_properties(G4L PROPERTIES PREFIX "")
+
 endif(NOT HAS_ERROR)
