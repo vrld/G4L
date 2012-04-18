@@ -13,18 +13,17 @@ The goal is to provide access to OpenGL 3.3, including:
 - Vertex and Index Buffer Objects
 - Easy texture loading (libjpeg, libpng)
 
-... and all that as a lua library, not as a standalone program.
-
 
 ## Possible Applications
 
 Prototyping/visualizations/live coding/awesome
 
+
 ## Example
 
     local g4l = require 'G4L'
     
-    g4l.initMode(g4l.mode.rgba, g4l.mode.double)
+    g4l.initMode(g4l.screen.rgba, g4l.screen.double)
     g4l.clearColor(.05,.1,.3,.1)
     
     local win = g4l.newWindow("G4L", 800,600)
@@ -88,6 +87,13 @@ Prototyping/visualizations/live coding/awesome
     buffer = buffer:finish()
     buffer:draw(draw_mode)
 
+### Framebuffer Objects
+
+    fbo = g4l.framebuffer(width, height, [disable-renderbuffer = false])
+    texture = fbo:addAttachment([texture-unit = 1])
+    complete, error-message = fbo:isComplete()
+    g4l.setFramebuffer([fbo = nil])
+
 ### Shader
 
     shader = g4l.shader(vertex_source, fragment_source)
@@ -100,9 +106,9 @@ Prototyping/visualizations/live coding/awesome
 
 #### Vertex Attributes
 
-	shader:enableAttribute(name, [...])
-	shader:disableAttribute(name, [...])
-	shader:bindAttribute(name, buffer, [min, max, normalize])
+    shader:enableAttribute(name, [...])
+    shader:disableAttribute(name, [...])
+    shader:bindAttribute(name, buffer, [min, max, normalize])
 
 ### Window
 
@@ -346,7 +352,7 @@ Corresponding to the g4l\_ and g4lUT\_ counterparts.
     max
 
 
-### g4l.buffer_bit
+### g4l.clear_bit
 
     color
     depth
@@ -371,6 +377,16 @@ Corresponding to the g4l\_ and g4lUT\_ counterparts.
     decr
     decr_wrap
     invert
+
+### g4l.texture_flags
+
+    clamp_to_edge
+    clamp_to_border
+    mirrored_repeat
+    repeat
+    
+    nearest
+    linear
 
 ### g4l.draw_mode
 
