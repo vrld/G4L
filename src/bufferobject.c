@@ -90,7 +90,7 @@ static void fill_buffer_with_table(lua_State* L, bufferobject* b, int idx, int o
 		void* old_data = NULL;
 		glGetBufferSubData(b->target, 0, offset, old_data);
 		memcpy(new_data, old_data, offset);
-		memcpy(new_data + offset, data, size_new);
+		memcpy((void*)((char*)new_data + offset), data, size_new);
 
 		glBufferData(b->target, size_new + offset, new_data, b->usage);
 		free(new_data);
