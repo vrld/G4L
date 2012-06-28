@@ -6,16 +6,12 @@
 struct lua_State;
 
 typedef struct bufferobject {
-	GLuint id;
-	GLenum target;
-	GLenum usage;
-	GLsizei pos;
-	GLsizei max_size;
-	GLsizei record_size;
-
-	GLenum element_type;
-	size_t element_size;
-	void* data;
+	GLuint  id;
+	GLenum  target;
+	GLenum  usage;
+	GLsizei count;
+	GLenum  element_type;
+	GLsizei element_size;
 } bufferobject;
 
 bufferobject* l_checkbufferobject(struct lua_State* L, int idx);

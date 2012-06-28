@@ -121,19 +121,21 @@ static int l_shader_disableAttribute(lua_State* L)
 
 static int l_shader_bindAttribute(lua_State* L)
 {
-	shader* s = l_checkshader(L, 1);
-	const char* name = luaL_checkstring(L, 2);
-	GLint location = get_attribute_location(L, s, name);
-	bufferobject* b = l_checkbufferobject(L, 3);
-	int low = luaL_optint(L, 4, 1);
-	int high = luaL_optint(L, 5, b->record_size);
-	GLboolean normalize = lua_toboolean(L, 6) ? GL_TRUE : GL_FALSE;
+	shader* s           = l_checkshader(L, 1);
+	const char* name    = luaL_checkstring(L, 2);
+	bufferobject* b     = l_checkbufferobject(L, 3);
+	int stride          = luaL_optint(L, 4, 1);
+	int low             = luaL_optint(L, 5, 1);
+	int high            = luaL_optint(L, 6, stride);
+	GLboolean normalize = lua_toboolean(L, 7) ? GL_TRUE : GL_FALSE;
+
+	GLint location      = get_attribute_location(L, s, name);
 
 	while (low <= 0)
-		low += b->record_size + 1;
+		low += stride + 1;
 
 	while (high <= 0)
-		high += b->record_size + 1;
+		high += stride + 1;
 
 	int span = high - low + 1;
 	if (span <= 0 || span > 4)
@@ -141,7 +143,7 @@ static int l_shader_bindAttribute(lua_State* L)
 
 	glBindBuffer(b->target, b->id);
 	glVertexAttribPointer(location, span, b->element_type, normalize,
-			b->element_size * b->record_size, (GLvoid*)(b->element_size * (low-1)));
+			b->element_size * stride, (GLvoid*)(b->element_size * (low-1)));
 
 	lua_settop(L, 1);
 	return 1;

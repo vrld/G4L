@@ -7,8 +7,97 @@
 #include <glew.h>
 
 #include <stdlib.h>
+#include <string.h>
 
 static const char* INTERNAL_NAME = "G4L.bufferobject";
+
+static void fill_buffer_with_table(lua_State* L, bufferobject* b, int idx, int offset)
+{
+	int count = lua_objlen(L, idx);
+	void* data = NULL;
+
+#define _FILL(type)                         \
+	b->element_size = sizeof(type);         \
+	data = malloc(count * sizeof(type));    \
+	if (NULL == data)                       \
+		luaL_error(L, "Out of memory");     \
+	for (int i = 1; i <= count; ++i) {      \
+		lua_rawgeti(L, idx, i);             \
+		lua_Number v = lua_tonumber(L, -1); \
+		((type*)data)[i-1] = (type)v;       \
+	}                                       \
+	lua_pop(L, count)
+
+	switch (b->element_type)
+	{
+	case GL_BYTE:
+		_FILL(GLbyte);
+		break;
+	case GL_UNSIGNED_BYTE:
+		_FILL(GLubyte);
+		break;
+	case GL_SHORT:
+		_FILL(GLshort);
+		break;
+	case GL_UNSIGNED_SHORT:
+		_FILL(GLushort);
+		break;
+	case GL_INT:
+		_FILL(GLint);
+		break;
+	case GL_UNSIGNED_INT:
+		_FILL(GLuint);
+		break;
+	case GL_FLOAT:
+		_FILL(GLfloat);
+		break;
+	case GL_DOUBLE:
+		_FILL(GLdouble);
+		break;
+	default:
+		luaL_error(L, "Invalid data type");
+	};
+#undef _FILL
+
+	int size_old = b->count * b->element_size;
+	int size_new = count * b->element_size;
+	offset = b->element_size;
+
+	glBindBuffer(b->target, b->id);
+	if (size_old >= size_new + offset)
+	{
+		// reuse old buffer
+		glBufferSubData(b->target, offset, size_new, data);
+	}
+	else if (b->count == 0)
+	{
+		// this is a new buffer
+		glBufferData(b->target, size_new, data, b->usage);
+		b->count = count;
+	}
+	else
+	{
+		printf("size_old = %d, size_new = %d, offset = %d\n", size_old, size_new, offset);
+		// new data extends buffer. bollux.
+		void* new_data = malloc(size_new + offset);
+		if (NULL == new_data)
+		{
+			free(data);
+			luaL_error(L, "Out of memory");
+		}
+
+		// merge unchanged with new part
+		void* old_data = NULL;
+		glGetBufferSubData(b->target, 0, offset, old_data);
+		memcpy(new_data, old_data, offset);
+		memcpy(new_data + offset, data, size_new);
+
+		glBufferData(b->target, size_new + offset, new_data, b->usage);
+		free(new_data);
+		b->count = count;
+	}
+	free(data);
+}
 
 bufferobject* l_checkbufferobject(lua_State* L, int idx)
 {
@@ -18,110 +107,8 @@ bufferobject* l_checkbufferobject(lua_State* L, int idx)
 static int l_bufferobject___gc(lua_State* L)
 {
 	bufferobject* b = (bufferobject*)lua_touserdata(L, 1);
-	free(b->data);
 	glDeleteBuffers(1, &(b->id));
 	return 0;
-}
-
-// poor mans template meta programming
-#define __bufferobject_push_polymorphic(TYPE, getterfunc, L, b) do { \
-	TYPE* data = (TYPE*)(b->data); \
-	size_t offset = b->pos * b->record_size; \
-	if (b->record_size == 1) { \
-		for (int i = 2; i <= top; ++i, ++b->pos, ++offset) \
-			data[offset] = getterfunc(L, i); \
-	} else { \
-		for (int i = 2; i <= top; ++i, ++b->pos) { \
-			for (int k = 1; k <= b->record_size; ++k, ++offset) { \
-				lua_rawgeti(L, i, k); \
-				data[offset] = getterfunc(L, -1); \
-			} \
-			lua_pop(L, b->record_size); \
-		} \
-	} } while(0)
-
-static int l_bufferobject_push(lua_State* L)
-{
-	int top = lua_gettop(L);
-	if (top == 1) return 1;
-
-	bufferobject* b = l_checkbufferobject(L, 1);
-
-	// check argument sanity
-	for (int i = 2; i <= top; ++i) {
-		if (b->record_size == 1) {
-			luaL_checknumber(L, i);
-		} else {
-			if (!lua_istable(L, i))
-				return luaL_typerror(L, i, "table");
-			else if (b->record_size != (GLsizei)lua_objlen(L, i))
-				return luaL_error(L, "Invalid record size in argument %d: expected %d, got %d",
-						i, b->record_size, lua_objlen(L, i));
-		}
-	}
-
-	// resize buffer if needed
-	while (b->pos + (top-1) > b->max_size) {
-		b->max_size *= 2;
-		b->data = realloc(b->data, b->element_size * b->record_size * b->max_size);
-	}
-
-	// push arguments
-	switch (b->element_type) {
-		case GL_BYTE:
-			__bufferobject_push_polymorphic(GLbyte, lua_tointeger, L, b);
-			break;
-		case GL_UNSIGNED_BYTE:
-			__bufferobject_push_polymorphic(GLubyte, lua_tointeger, L, b);
-			break;
-		case GL_SHORT:
-			__bufferobject_push_polymorphic(GLshort, lua_tointeger, L, b);
-			break;
-		case GL_UNSIGNED_SHORT:
-			__bufferobject_push_polymorphic(GLushort, lua_tointeger, L, b);
-			break;
-		case GL_INT:
-			__bufferobject_push_polymorphic(GLint, lua_tointeger, L, b);
-			break;
-		case GL_UNSIGNED_INT:
-			__bufferobject_push_polymorphic(GLuint, lua_tointeger, L, b);
-			break;
-		case GL_FLOAT:
-			__bufferobject_push_polymorphic(GLfloat, lua_tonumber, L, b);
-			break;
-		case GL_DOUBLE:
-			__bufferobject_push_polymorphic(GLdouble, lua_tonumber, L, b);
-			break;
-	}
-
-	lua_settop(L, 1);
-	return 1;
-}
-
-static int l_bufferobject_clear(lua_State* L)
-{
-	bufferobject* b = l_checkbufferobject(L, 1);
-	b->pos = 0;
-	lua_settop(L, 1);
-	return 1;
-}
-
-static int l_bufferobject_finish(lua_State* L)
-{
-	bufferobject* b = l_checkbufferobject(L, 1);
-
-	glGetError();
-	glBindBuffer(b->target, b->id);
-	glBufferData(b->target, b->element_size * b->pos * b->record_size,
-			b->data, b->usage);
-	GLenum err = glGetError();
-	//glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-	if (GL_NO_ERROR != err)
-		return luaL_error(L, "Unable to create data storage");
-
-	lua_settop(L, 1);
-	return 1;
 }
 
 int l_bufferobject_draw(lua_State* L)
@@ -131,19 +118,41 @@ int l_bufferobject_draw(lua_State* L)
 
 	glBindBuffer(b->target, b->id);
 	glGetError();
-	switch (b->target) {
-		case GL_ARRAY_BUFFER:
-			glDrawArrays(mode, 0, b->pos);
-			break;
-		case GL_ELEMENT_ARRAY_BUFFER:
-			glDrawElements(mode, b->pos, b->element_type, NULL);
-			break;
-		default:
-			return luaL_error(L, "Not implemented");
+	switch (b->target)
+	{
+	case GL_ARRAY_BUFFER:
+		glDrawArrays(mode, 0, b->count);
+		break;
+	case GL_ELEMENT_ARRAY_BUFFER:
+		glDrawElements(mode, b->count, b->element_type, NULL);
+		break;
+	default:
+		return luaL_error(L, "Not implemented");
 	}
 	if (GL_INVALID_ENUM == glGetError())
 		return luaL_error(L, "Invalid draw mode");
 	return 0;
+}
+
+static int l_bufferobject_update(lua_State* L)
+{
+	bufferobject* b = l_checkbufferobject(L, 1);
+	int top = lua_gettop(L);
+	int offset = 0;
+
+	if (top > 2)
+		offset = luaL_checkinteger(L, 2) - 1;
+
+	while (GL_NO_ERROR != glGetError())
+		/*clear error flags*/;
+
+	fill_buffer_with_table(L, b, top, offset);
+
+	if (GL_NO_ERROR != glGetError())
+		return luaL_error(L, "Unable to create data storage");
+
+	lua_settop(L, 1);
+	return 1;
 }
 
 int l_bufferobject_new(lua_State* L)
@@ -153,73 +162,56 @@ int l_bufferobject_new(lua_State* L)
 
 	assert_extension(L, ARB_vertex_buffer_object);
 
-	GLsizei record_size  = luaL_optinteger(L, 1, 4);
-	GLenum target        = luaL_optinteger(L, 2, GL_ARRAY_BUFFER);
-	GLenum usage         = luaL_optinteger(L, 3, GL_STATIC_DRAW);
-	GLenum element_type  = luaL_optinteger(L, 4, GL_FLOAT);
-	GLsizei initial_size = luaL_optinteger(L, 5, 32);
+	GLenum target = GL_ARRAY_BUFFER;
+	GLenum usage = GL_STATIC_DRAW;
+	GLenum element_type = GL_FLOAT;
 
-	if (record_size <= 0)
-		return luaL_error(L, "Invalid record size: %d", record_size);
+	int top = lua_gettop(L);
+	if (!lua_istable(L, top))
+		return luaL_typerror(L, top, "table");
 
-	switch (target) {
-		case GL_ARRAY_BUFFER:
-		case GL_COPY_READ_BUFFER:
-		case GL_COPY_WRITE_BUFFER:
-		case GL_ELEMENT_ARRAY_BUFFER:
-		case GL_PIXEL_PACK_BUFFER:
-		case GL_PIXEL_UNPACK_BUFFER:
-		case GL_TEXTURE_BUFFER:
-		case GL_TRANSFORM_FEEDBACK_BUFFER:
-		case GL_UNIFORM_BUFFER:
-			break;
-		default:
-			return luaL_error(L, "Invalid buffer target");
+	if (top > 1)
+		target       = luaL_checkinteger(L, 1);
+	if (top > 2)
+		usage        = luaL_checkinteger(L, 2);
+	if (top > 3)
+		element_type = luaL_checkinteger(L, 3);
+
+	switch (target)
+	{
+	case GL_ARRAY_BUFFER:
+	case GL_COPY_READ_BUFFER:
+	case GL_COPY_WRITE_BUFFER:
+	case GL_ELEMENT_ARRAY_BUFFER:
+	case GL_PIXEL_PACK_BUFFER:
+	case GL_PIXEL_UNPACK_BUFFER:
+	case GL_TEXTURE_BUFFER:
+	case GL_TRANSFORM_FEEDBACK_BUFFER:
+	case GL_UNIFORM_BUFFER:
+		break;
+	default:
+		return luaL_error(L, "Invalid buffer target");
 	}
 
-	switch (usage) {
-		case GL_STREAM_DRAW:
-		case GL_STREAM_READ:
-		case GL_STREAM_COPY:
-		case GL_STATIC_DRAW:
-		case GL_STATIC_READ:
-		case GL_STATIC_COPY:
-		case GL_DYNAMIC_DRAW:
-		case GL_DYNAMIC_READ:
-		case GL_DYNAMIC_COPY:
-			break;
-		default:
-			return luaL_error(L, "Invalid usage");
+	switch (usage)
+	{
+	case GL_STREAM_DRAW:
+	case GL_STREAM_READ:
+	case GL_STREAM_COPY:
+	case GL_STATIC_DRAW:
+	case GL_STATIC_READ:
+	case GL_STATIC_COPY:
+	case GL_DYNAMIC_DRAW:
+	case GL_DYNAMIC_READ:
+	case GL_DYNAMIC_COPY:
+		break;
+	default:
+		return luaL_error(L, "Invalid buffer usage");
 	}
-
-	size_t element_size;
-	switch (element_type) {
-		case GL_BYTE:
-			element_size = sizeof(GLbyte); break;
-		case GL_UNSIGNED_BYTE:
-			element_size = sizeof(GLubyte); break;
-		case GL_SHORT:
-			element_size = sizeof(GLshort); break;
-		case GL_UNSIGNED_SHORT:
-			element_size = sizeof(GLushort); break;
-		case GL_INT:
-			element_size = sizeof(GLint); break;
-		case GL_UNSIGNED_INT:
-			element_size = sizeof(GLuint); break;
-		case GL_FLOAT:
-			element_size = sizeof(GLfloat); break;
-		case GL_DOUBLE:
-			element_size = sizeof(GLdouble); break;
-		default:
-			return luaL_error(L, "Invalid data type");
-	};
-
-	if (initial_size <= 0)
-		return luaL_error(L, "Invalid initial size: %d", initial_size);
 
 	bufferobject* b = (bufferobject*)lua_newuserdata(L, sizeof(bufferobject));
 	if (NULL == b)
-		return luaL_error(L, "out of memory");
+		return luaL_error(L, "Out of memory");
 
 	GLuint id;
 	glGenBuffers(1, &id);
@@ -227,19 +219,26 @@ int l_bufferobject_new(lua_State* L)
 	b->id = id;
 	b->target = target;
 	b->usage = usage;
-	b->max_size = initial_size;
-	b->pos = 0;
-	b->record_size = record_size;
+	b->count = 0;
 	b->element_type = element_type;
-	b->element_size = element_size;
-	b->data = malloc(element_size * record_size * initial_size);
 
-	if (luaL_newmetatable(L, INTERNAL_NAME)) {
-		luaL_reg meta[] = {
+	while (GL_NO_ERROR != glGetError())
+		/*clear error flags*/;
+
+	fill_buffer_with_table(L, b, top, 0);
+
+	if (GL_NO_ERROR != glGetError())
+	{
+		glDeleteBuffers(1, &(id));
+		return luaL_error(L, "Unable to create data storage");
+	}
+
+	if (luaL_newmetatable(L, INTERNAL_NAME))
+	{
+		luaL_reg meta[] =
+		{
 			{"__gc",      l_bufferobject___gc},
-			{"push",      l_bufferobject_push},
-			{"clear",     l_bufferobject_clear},
-			{"finish",    l_bufferobject_finish},
+			{"update",    l_bufferobject_update},
 			{"draw",      l_bufferobject_draw},
 			{NULL, NULL}
 		};
