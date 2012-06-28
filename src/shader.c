@@ -35,7 +35,8 @@ static const char* UNIFORMS_NAME   = "G4L.Shader.uniforms";
 static const char* ATTRIBUTES_NAME = "G4L.Shader.attributes";
 
 static GLint get_location(lua_State*L, shader* s, const char* name,
-                          const char* registry, GLint (APIENTRY *getter)(GLuint, const GLchar*))
+                          const char* registry,
+                          GLint (APIENTRY *getter)(GLuint, const GLchar*))
 {
 	lua_pushstring(L, registry);
 	lua_rawget(L, LUA_REGISTRYINDEX);
@@ -68,8 +69,10 @@ static GLint get_location(lua_State*L, shader* s, const char* name,
 	return location;
 }
 
-#define get_uniform_location(L, s, name) get_location(L, s, name, UNIFORMS_NAME, glGetUniformLocation)
-#define get_attribute_location(L, s, name) get_location(L, s, name, ATTRIBUTES_NAME, glGetAttribLocation)
+#define get_uniform_location(L, s, name) \
+	get_location(L, s, name, UNIFORMS_NAME, glGetUniformLocation)
+#define get_attribute_location(L, s, name) \
+	get_location(L, s, name, ATTRIBUTES_NAME, glGetAttribLocation)
 
 shader* l_checkshader(lua_State* L, int idx)
 {
@@ -150,7 +153,8 @@ static int l_shader_bindAttribute(lua_State* L)
 
 	glBindBuffer(b->target, b->id);
 	glVertexAttribPointer(location, span, b->element_type, normalize,
-	                      b->element_size * stride, (GLvoid*)(b->element_size * (low-1)));
+	                      b->element_size * stride,
+	                      (GLvoid*)((char*)NULL + b->element_size * (low-1)));
 
 	lua_settop(L, 1);
 	return 1;
