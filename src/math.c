@@ -74,7 +74,8 @@ int l_isanymat(lua_State* L, int idx)
 void* l_checkvec(int n, lua_State* L, int idx)
 {
 	vec4* v = (vec4*)luaL_checkudata(L, idx, VEC_INTERNAL_NAME);
-	if ((NULL == v) || (v->dim != n)) {
+	if ((NULL == v) || (v->dim != n))
+	{
 		char type[5] = "vec?";
 		type[3] = (char)n + '0';
 		luaL_typerror(L, idx, type);
@@ -85,7 +86,8 @@ void* l_checkvec(int n, lua_State* L, int idx)
 void* l_checkmat(int rows, int cols, lua_State* L, int idx)
 {
 	mat44* m = (mat44*)luaL_checkudata(L, idx, MAT_INTERNAL_NAME);
-	if ((NULL == m) || (m->rows != rows) || (m->cols != cols)) {
+	if ((NULL == m) || (m->rows != rows) || (m->cols != cols))
+	{
 		char type[6] = "mat??";
 		type[3] = (char)(rows + 48);
 		type[4] = (char)(cols + 48);
@@ -154,9 +156,9 @@ static int l_vec___tostring(lua_State* L)
 	luaL_addchar(&B, (char)v->dim + '0');
 	luaL_addchar(&B, '(');
 	FOR_VECTOR(i, v->dim,
-			lua_pushnumber(L, v->v[i]);
-			luaL_addvalue(&B);
-			luaL_addchar(&B, i+1 < v->dim ? ',' : ')'));
+	           lua_pushnumber(L, v->v[i]);
+	           luaL_addvalue(&B);
+	           luaL_addchar(&B, i+1 < v->dim ? ',' : ')'));
 
 	luaL_pushresult(&B);
 	return 1;
@@ -167,7 +169,7 @@ static int l_vec___unm(lua_State* L)
 	vec4* v = (vec4*)lua_touserdata(L, 1);
 	lua_pushcfunction(L, l_vec_new);
 	FOR_VECTOR(i, v->dim,
-			lua_pushnumber(L, v->v[i]));
+	           lua_pushnumber(L, v->v[i]));
 	lua_call(L, v->dim, 1);
 	return 1;
 }
@@ -179,7 +181,7 @@ static int l_vec___add(lua_State* L)
 
 	lua_pushcfunction(L, l_vec_new);
 	FOR_VECTOR(i, a->dim,
-			lua_pushnumber(L, a->v[i] + b->v[i]));
+	           lua_pushnumber(L, a->v[i] + b->v[i]));
 	lua_call(L, a->dim, 1);
 	return 1;
 }
@@ -191,32 +193,38 @@ static int l_vec___sub(lua_State* L)
 
 	lua_pushcfunction(L, l_vec_new);
 	FOR_VECTOR(i, a->dim,
-			lua_pushnumber(L, a->v[i] - b->v[i]));
+	           lua_pushnumber(L, a->v[i] - b->v[i]));
 	lua_call(L, a->dim, 1);
 	return 1;
 }
 
 static int l_vec___mul(lua_State* L)
 {
-	if (l_isanyvec(L, 1)) { // v * s or v * v
+	if (l_isanyvec(L, 1))   // v * s or v * v
+	{
 		vec4* a = (vec4*)lua_touserdata(L, 1);
 		lua_pushcfunction(L, l_vec_new);
 
-		if (lua_isnumber(L, 2)) { // v * s -- scalar product
+		if (lua_isnumber(L, 2))   // v * s -- scalar product
+		{
 			GLfloat s = lua_tonumber(L, 2);
 			FOR_VECTOR(i, a->dim,
-					lua_pushnumber(L, a->v[i] * s));
+			           lua_pushnumber(L, a->v[i] * s));
 			lua_call(L, a->dim, 1);
-		} else { // v * v -- dot product
+		}
+		else     // v * v -- dot product
+		{
 			vec4* b = (vec4*)l_checkvec(a->dim, L, 2);
 			FOR_VECTOR(i, a->dim,
-					lua_pushnumber(L, a->v[i] * b->v[i]));
+			           lua_pushnumber(L, a->v[i] * b->v[i]));
 		}
-	} else if (lua_isnumber(L, 1)) { // s * v
+	}
+	else if (lua_isnumber(L, 1))     // s * v
+	{
 		GLfloat s = lua_tonumber(L, 1);
 		vec4* a = (vec4*)lua_touserdata(L, 2);
 		FOR_VECTOR(i, a->dim,
-				lua_pushnumber(L, a->v[i] * s));
+		           lua_pushnumber(L, a->v[i] * s));
 		lua_call(L, a->dim, 1);
 
 	}
@@ -230,7 +238,7 @@ static int l_vec___div(lua_State* L)
 
 	lua_pushcfunction(L, l_vec_new);
 	FOR_VECTOR(i, a->dim,
-			lua_pushnumber(L, a->v[i] / s));
+	           lua_pushnumber(L, a->v[i] / s));
 	lua_call(L, a->dim, 1);
 	return 1;
 }
@@ -248,15 +256,20 @@ static int l_vec___pow(lua_State* L)
 	vec4* a = (vec4*)lua_touserdata(L, 1);
 	vec4* b = (vec4*)l_checkvec(a->dim, L, 2);
 
-	if (a->dim == 2) {
+	if (a->dim == 2)
+	{
 		lua_pushnumber(L, a->v[0]*b->v[1] - a->v[1]*b->v[0]);
-	} else if (a->dim == 3) {
+	}
+	else if (a->dim == 3)
+	{
 		lua_pushcfunction(L, l_vec_new);
 		lua_pushnumber(L, a->v[1]*b->v[2] - a->v[2]*b->v[1]);
 		lua_pushnumber(L, a->v[2]*b->v[0] - a->v[0]*b->v[2]);
 		lua_pushnumber(L, a->v[0]*b->v[1] - a->v[1]*b->v[0]);
 		lua_call(L, a->dim, 1);
-	} else {
+	}
+	else
+	{
 		return luaL_error(L, "a ^ b undefined with dim(a) = dim(b) = %d", a->dim);
 	}
 	return 1;
@@ -269,13 +282,14 @@ static int l_vec___concat(lua_State* L)
 	int isvec_arg2 = l_isanyvec(L, 2);
 
 	// per element multiplication
-	if (isvec_arg1 && isvec_arg2) {
+	if (isvec_arg1 && isvec_arg2)
+	{
 		vec4* a = (vec4*)lua_touserdata(L, 1);
 		vec4* b = (vec4*)l_checkvec(a->dim, L, 2);
 
 		lua_pushcfunction(L, l_vec_new);
 		FOR_VECTOR(i, a->dim,
-				lua_pushnumber(L, a->v[i] * b->v[i]));
+		           lua_pushnumber(L, a->v[i] * b->v[i]));
 		lua_call(L, a->dim, 1);
 		return 1;
 	}
@@ -284,10 +298,13 @@ static int l_vec___concat(lua_State* L)
 	luaL_Buffer b;
 	luaL_buffinit(L, &b);
 
-	if (isvec_arg1) {
+	if (isvec_arg1)
+	{
 		l_vec___tostring(L);
 		lua_pushvalue(L, 3);
-	} else {
+	}
+	else
+	{
 		// places tostring(arg2) at index 2
 		lua_pushcfunction(L, l_vec___tostring);
 		lua_insert(L, 2);
@@ -311,35 +328,39 @@ static int l_vec___len(lua_State* L)
 
 static int l_vec___eq(lua_State* L)
 {
-	if (!l_isanyvec(L, 1) || !l_isanyvec(L, 2)) {
+	if (!l_isanyvec(L, 1) || !l_isanyvec(L, 2))
+	{
 		lua_pushboolean(L, 0);
 		return 1;
 	}
 	vec4* a = (vec4*)lua_touserdata(L, 1);
 	vec4* b = (vec4*)lua_touserdata(L, 2);
 
-	if (a->dim != b->dim) {
+	if (a->dim != b->dim)
+	{
 		lua_pushboolean(L, 0);
 		return 1;
 	}
 
 	int equal = 1;
 	FOR_VECTOR(i, a->dim,
-			equal = equal && (a->v[i] == b->v[i]));
+	           equal = equal && (a->v[i] == b->v[i]));
 	lua_pushboolean(L, equal);
 	return 1;
 }
 
 static int l_vec___lt(lua_State* L)
 {
-	if (!l_isanyvec(L, 1) || !l_isanyvec(L, 2)) {
+	if (!l_isanyvec(L, 1) || !l_isanyvec(L, 2))
+	{
 		lua_pushboolean(L, 0);
 		return 1;
 	}
 	vec4* a = (vec4*)lua_touserdata(L, 1);
 	vec4* b = (vec4*)lua_touserdata(L, 2);
 
-	if (a->dim != b->dim) {
+	if (a->dim != b->dim)
+	{
 		lua_pushboolean(L, a->dim < b->dim);
 		return 1;
 	}
@@ -352,32 +373,41 @@ static int l_vec___lt(lua_State* L)
 
 static int l_vec___le(lua_State* L)
 {
-	if (!l_isanyvec(L, 1) || !l_isanyvec(L, 2)) {
+	if (!l_isanyvec(L, 1) || !l_isanyvec(L, 2))
+	{
 		lua_pushboolean(L, 0);
 		return 1;
 	}
 	vec4* a = (vec4*)lua_touserdata(L, 1);
 	vec4* b = (vec4*)lua_touserdata(L, 2);
 
-	if (a->dim != b->dim) {
+	if (a->dim != b->dim)
+	{
 		lua_pushboolean(L, a->dim < b->dim);
 		return 1;
 	}
 
 	// a.x < b.x or (a.x == b.x and (a.y < b.y and ...))
-	switch (a->dim) {
-		case 4: if (a->v[3] != b->v[3]) {
-				lua_pushboolean(L, a->v[3] < b->v[3]);
-				break;
-			}
-		case 3: if (a->v[2] != b->v[2]) {
-				lua_pushboolean(L, a->v[2] < b->v[2]);
-				break;
-			}
-		case 2: if (a->v[1] != b->v[1]) {
-				lua_pushboolean(L, a->v[1] < b->v[1]);
-				break;
-			}
+	switch (a->dim)
+	{
+	case 4:
+		if (a->v[3] != b->v[3])
+		{
+			lua_pushboolean(L, a->v[3] < b->v[3]);
+			break;
+		}
+	case 3:
+		if (a->v[2] != b->v[2])
+		{
+			lua_pushboolean(L, a->v[2] < b->v[2]);
+			break;
+		}
+	case 2:
+		if (a->v[1] != b->v[1])
+		{
+			lua_pushboolean(L, a->v[1] < b->v[1]);
+			break;
+		}
 	}
 	lua_pushboolean(L, a->v[0] <= b->v[0]);
 	return 1;
@@ -389,7 +419,7 @@ static int l_vec_clone(lua_State* L)
 	vec4* a = (vec4*)lua_touserdata(L, 1);
 	lua_pushcfunction(L, l_vec_new);
 	FOR_VECTOR(i, a->dim,
-			lua_pushnumber(L, a->v[i]));
+	           lua_pushnumber(L, a->v[i]));
 	lua_call(L, a->dim, 1);
 	return 1;
 }
@@ -403,11 +433,11 @@ static int l_vec_map(lua_State* L)
 		return luaL_typerror(L, 2, "function");
 
 	FOR_VECTOR(i, a->dim,
-		lua_pushvalue(L, 2);
-		lua_pushnumber(L, a->v[i]);
-		lua_pushstring(L, index_name[i]);
-		lua_call(L, 2, 1);
-		a->v[i] = lua_tonumber(L, -1));
+	           lua_pushvalue(L, 2);
+	           lua_pushnumber(L, a->v[i]);
+	           lua_pushstring(L, index_name[i]);
+	           lua_call(L, 2, 1);
+	           a->v[i] = lua_tonumber(L, -1));
 	lua_settop(L, 1);
 	return 1;
 }
@@ -416,7 +446,7 @@ static int l_vec_unpack(lua_State* L)
 {
 	vec4* a = (vec4*)lua_touserdata(L, 1);
 	FOR_VECTOR(i, a->dim,
-			lua_pushnumber(L, a->v[i]));
+	           lua_pushnumber(L, a->v[i]));
 	return a->dim;
 }
 
@@ -425,7 +455,7 @@ static int l_vec_reset(lua_State* L)
 	vec4* a = (vec4*)lua_touserdata(L, 1);
 	GLfloat b[4];
 	FOR_VECTOR(i, a->dim,
-			b[i] = luaL_checknumber(L, i+2));
+	           b[i] = luaL_checknumber(L, i+2));
 	memcpy(a->v, b, a->dim * sizeof(GLfloat));
 
 	lua_settop(L, 1);
@@ -437,7 +467,7 @@ static int l_vec_len(lua_State* L)
 	vec4* a = (vec4*)lua_touserdata(L, 1);
 	GLfloat len = .0;
 	FOR_VECTOR(i, a->dim,
-			len += a->v[i] * a->v[i]);
+	           len += a->v[i] * a->v[i]);
 	lua_pushnumber(L, sqrt(len));
 	return 1;
 }
@@ -447,7 +477,7 @@ static int l_vec_len2(lua_State* L)
 	vec4* a = (vec4*)lua_touserdata(L, 1);
 	GLfloat len = .0;
 	FOR_VECTOR(i, a->dim,
-			len += a->v[i] * a->v[i]);
+	           len += a->v[i] * a->v[i]);
 	lua_pushnumber(L, len);
 	return 1;
 }
@@ -459,8 +489,8 @@ static int l_vec_dist(lua_State* L)
 	GLfloat len = .0;
 	GLfloat x;
 	FOR_VECTOR(i, a->dim,
-		x = a->v[i] - b->v[i];
-		len += x * x);
+	           x = a->v[i] - b->v[i];
+	           len += x * x);
 	lua_pushnumber(L, sqrt(len));
 	return 1;
 }
@@ -475,12 +505,12 @@ static int l_vec_normalized(lua_State* L)
 	vec4* a = (vec4*)lua_touserdata(L, 1);
 	GLfloat len = .0;
 	FOR_VECTOR(i, a->dim,
-			len += a->v[i] * a->v[i]);
+	           len += a->v[i] * a->v[i]);
 	len = sqrt(len);
 
 	lua_pushcfunction(L, l_vec_new);
 	FOR_VECTOR(i, a->dim,
-			lua_pushnumber(L, a->v[i] / len));
+	           lua_pushnumber(L, a->v[i] / len));
 	lua_call(L, a->dim, 1);
 	return 1;
 }
@@ -490,11 +520,11 @@ static int l_vec_normalize_inplace(lua_State* L)
 	vec4* a = (vec4*)lua_touserdata(L, 1);
 	GLfloat len = .0;
 	FOR_VECTOR(i, a->dim,
-			len += a->v[i] * a->v[i]);
+	           len += a->v[i] * a->v[i]);
 	len = sqrt(len);
 
 	FOR_VECTOR(i, a->dim,
-			a->v[i] /= len);
+	           a->v[i] /= len);
 	return 1;
 }
 
@@ -506,13 +536,13 @@ static int l_vec_projectOn(lua_State* L)
 	GLfloat len = .0;
 	GLfloat s = .0;
 	FOR_VECTOR(i, a->dim,
-			len += b->v[i]*b->v[i];
-			s += a->v[i]*b->v[i]);
+	           len += b->v[i]*b->v[i];
+	           s += a->v[i]*b->v[i]);
 	s /= len;
 
 	lua_pushcfunction(L, l_vec_new);
 	FOR_VECTOR(i, a->dim,
-			lua_pushvalue(L, s * b->v[i]));
+	           lua_pushvalue(L, s * b->v[i]));
 	lua_call(L, a->dim, 1);
 
 	return 1;
@@ -526,13 +556,13 @@ static int l_vec_mirrorOn(lua_State* L)
 	GLfloat len = .0;
 	GLfloat s = .0;
 	FOR_VECTOR(i, a->dim,
-			len += b->v[i]*b->v[i];
-			s += a->v[i]*b->v[i]);
+	           len += b->v[i]*b->v[i];
+	           s += a->v[i]*b->v[i]);
 	s *= 2. / len;
 
 	lua_pushcfunction(L, l_vec_new);
 	FOR_VECTOR(i, a->dim,
-			lua_pushvalue(L, s * b->v[i] - a->v[i]));
+	           lua_pushvalue(L, s * b->v[i] - a->v[i]));
 	lua_call(L, a->dim, 1);
 
 	return 1;
@@ -544,11 +574,11 @@ static int l_vec_diag(lua_State* L)
 	lua_settop(L, 0);
 
 	FOR_VECTOR(i, v->dim,
-			FOR_VECTOR(k, i,
-				lua_pushnumber(L, .0));
-			lua_pushnumber(L, v->v[i]);
-			FOR_VECTOR(k, v->dim-i-1,
-				lua_pushnumber(L, .0)));
+	           FOR_VECTOR(k, i,
+	                      lua_pushnumber(L, .0));
+	           lua_pushnumber(L, v->v[i]);
+	           FOR_VECTOR(k, v->dim-i-1,
+	                      lua_pushnumber(L, .0)));
 	return l_mat_new(L);
 }
 
@@ -558,26 +588,29 @@ static int l_vec_new(lua_State* L)
 {
 	int dim = lua_gettop(L);
 	vec4* v = NULL;
-	switch (dim) {
-		case 2:
-			v = (vec4*)lua_newuserdata(L, sizeof(vec2));
-			break;
-		case 3:
-			v = (vec4*)lua_newuserdata(L, sizeof(vec3));
-			break;
-		case 4:
-			v = (vec4*)lua_newuserdata(L, sizeof(vec4));
-			break;
-		default:
-			return luaL_error(L, "Invalid vector dimension: %d", dim);
+	switch (dim)
+	{
+	case 2:
+		v = (vec4*)lua_newuserdata(L, sizeof(vec2));
+		break;
+	case 3:
+		v = (vec4*)lua_newuserdata(L, sizeof(vec3));
+		break;
+	case 4:
+		v = (vec4*)lua_newuserdata(L, sizeof(vec4));
+		break;
+	default:
+		return luaL_error(L, "Invalid vector dimension: %d", dim);
 	}
 	v->dim = dim;
 
 	for (int i = 1; i <= dim; ++i)
 		v->v[i-1] = luaL_checknumber(L, i);
 
-	if (luaL_newmetatable(L, VEC_INTERNAL_NAME)) {
-		luaL_reg meta[] = {
+	if (luaL_newmetatable(L, VEC_INTERNAL_NAME))
+	{
+		luaL_reg meta[] =
+		{
 			// vector meta methods
 			{"__index",           l_vec___index},
 			{"__newindex",        l_vec___newindex},
@@ -633,7 +666,8 @@ static int l_vec_new(lua_State* L)
 	FOR_MAT_ITER(i1, rows, FOR_MAT_ITER(i2, cols, expr))
 
 // matrix row proxy
-typedef struct matrix_row_proxy {
+typedef struct matrix_row_proxy
+{
 	int rowsize;
 	GLfloat* row;
 } matrix_row_proxy;
@@ -688,8 +722,10 @@ static int l_mat___index(lua_State* L)
 	p->row = m->m + (n-1) * m->cols;
 	p->rowsize = m->cols;
 
-	if (luaL_newmetatable(L, MATPROXY_INTERNAL_NAME)) {
-		luaL_Reg meta[] = {
+	if (luaL_newmetatable(L, MATPROXY_INTERNAL_NAME))
+	{
+		luaL_Reg meta[] =
+		{
 			{"__index",    l_matrix_row_proxy___index},
 			{"__newindex", l_matrix_row_proxy___newindex},
 			{NULL, NULL}
@@ -713,11 +749,11 @@ static int l_mat___tostring(lua_State* L)
 
 	luaL_addchar(&B, '(');
 	FOR_MAT(i, k, m->rows, m->cols,
-			lua_pushnumber(L, m->m[i * m->cols + k]);
-			luaL_addvalue(&B);
-			luaL_addchar(&B, i+1 == m->rows && k+1 == m->cols ? ')' : ',' );
-			if (i+1 != m->rows && k+1 == m->cols)
-				luaL_addchar(&B, ' '));
+	        lua_pushnumber(L, m->m[i * m->cols + k]);
+	        luaL_addvalue(&B);
+	        luaL_addchar(&B, i+1 == m->rows && k+1 == m->cols ? ')' : ',' );
+	        if (i+1 != m->rows && k+1 == m->cols)
+	        luaL_addchar(&B, ' '));
 	luaL_pushresult(&B);
 	return 1;
 }
@@ -728,7 +764,7 @@ static int l_mat___unm(lua_State* L)
 
 	lua_pushcfunction(L, l_mat_new);
 	FOR_MAT(i, k, m->rows, m->cols,
-			lua_pushnumber(L, m->m[i * m->cols + k]));
+	        lua_pushnumber(L, m->m[i * m->cols + k]));
 	lua_call(L, m->rows * m->cols, 1);
 	return 1;
 }
@@ -740,7 +776,7 @@ static int l_mat___add(lua_State* L)
 
 	lua_pushcfunction(L, l_mat_new);
 	FOR_MAT(i, k, a->rows, a->cols,
-			lua_pushnumber(L, a->m[i * a->cols + k] + b->m[i * b->cols + k]));
+	        lua_pushnumber(L, a->m[i * a->cols + k] + b->m[i * b->cols + k]));
 	lua_call(L, a->rows * a->cols, 1);
 	return 1;
 }
@@ -752,7 +788,7 @@ static int l_mat___sub(lua_State* L)
 
 	lua_pushcfunction(L, l_mat_new);
 	FOR_MAT(i, k, a->rows, a->cols,
-			lua_pushnumber(L, a->m[i * a->cols + k] - b->m[i * b->cols + k]));
+	        lua_pushnumber(L, a->m[i * a->cols + k] - b->m[i * b->cols + k]));
 	lua_call(L, a->rows * a->cols, 1);
 	return 1;
 }
@@ -760,52 +796,60 @@ static int l_mat___sub(lua_State* L)
 static int l_mat___mul(lua_State* L)
 {
 	int is_anymat_1 = l_isanymat(L, 1);
-	if (is_anymat_1) {
-		if (l_isanymat(L, 2)) {
+	if (is_anymat_1)
+	{
+		if (l_isanymat(L, 2))
+		{
 			// matrix * matrix = matrix
 			mat44* a = (mat44*)lua_touserdata(L, 1);
 			mat44* b = (mat44*)l_checkmat(a->cols, a->rows, L, 2);
 
 			GLfloat res[16] = {.0,.0,.0,.0, .0,.0,.0,.0, .0,.0,.0,.0, .0,.0,.0,.0};
 			FOR_MAT(i, k, a->rows, a->cols,
-					FOR_MAT_ITER(r, a->cols,
-						res[i * a->cols + k] += a->m[i * a->cols + r] * b->m[r * b->cols + k]));
+			        FOR_MAT_ITER(r, a->cols,
+			                     res[i * a->cols + k] += a->m[i * a->cols + r] * b->m[r * b->cols + k]));
 
 			lua_pushcfunction(L, l_mat_new);
 			FOR_MAT(i, k, a->rows, b->cols,
-					lua_pushnumber(L, res[i * b->cols + k]));
+			        lua_pushnumber(L, res[i * b->cols + k]));
 			lua_call(L, a->rows * b->cols, 1);
-		} else if (l_isanyvec(L, 2)) {
+		}
+		else if (l_isanyvec(L, 2))
+		{
 			// matrix * vector = vector
 			mat44* m = (mat44*)lua_touserdata(L, 1);
 			vec4* v = (vec4*)l_checkvec(m->cols, L, 2);
 
 			GLfloat res[4] = {.0,.0,.0,.0};
 			FOR_MAT(i, k, m->rows, m->cols,
-					res[i] += m->m[i*m->cols + k] * v->v[k]);
+			        res[i] += m->m[i*m->cols + k] * v->v[k]);
 
 			lua_pushcfunction(L, l_vec_new);
 			FOR_VECTOR(i, v->dim,
-					lua_pushnumber(L, res[i]));
+			           lua_pushnumber(L, res[i]));
 			lua_call(L, v->dim, 1);
-		} else {
+		}
+		else
+		{
 			// matrix * scalar = matrix
 			mat44* m = (mat44*)lua_touserdata(L, 1);
 			GLfloat s = luaL_checknumber(L, 2);
 
 			lua_pushcfunction(L, l_mat_new);
 			FOR_MAT(i, k, m->rows, m->cols,
-					lua_pushnumber(L, m->m[i * m->cols + k] * s));
+			        lua_pushnumber(L, m->m[i * m->cols + k] * s));
 			lua_call(L, m->rows * m->cols, 1);
 		}
-	} else {
+	}
+	else
+	{
 		// scalar * matrix = matrix
 		GLfloat s = luaL_checknumber(L, 1);
 		mat44* m = (mat44*)lua_touserdata(L, 2);
 
 		lua_pushcfunction(L, l_mat_new);
 		FOR_MAT(i, k, m->rows, m->cols,
-				lua_pushnumber(L, m->m[i * m->cols + k] * s));
+		        lua_pushnumber(L, m->m[i * m->cols + k] * s));
 		lua_call(L, m->rows * m->cols, 1);
 	}
 
@@ -816,17 +860,20 @@ static int l_mat___div(lua_State* L)
 {
 	mat44* m;
 	GLfloat s;
-	if (l_isanymat(L, 1)) {
+	if (l_isanymat(L, 1))
+	{
 		m = (mat44*)lua_touserdata(L, 1);
 		s = luaL_checknumber(L, 2);
-	} else {
+	}
+	else
+	{
 		s = luaL_checknumber(L, 1);
 		m = (mat44*)lua_touserdata(L, 2);
 	}
 
 	lua_pushcfunction(L, l_mat_new);
 	FOR_MAT(i, k, m->rows, m->cols,
-			lua_pushnumber(L, m->m[i * m->cols + k] / s));
+	        lua_pushnumber(L, m->m[i * m->cols + k] / s));
 	lua_call(L, m->rows * m->cols, 1);
 	return 1;
 }
@@ -837,13 +884,14 @@ static int l_mat___concat(lua_State* L)
 	int ismat_arg2 = l_isanymat(L, 2);
 
 	// per element multiplication
-	if (ismat_arg1 && ismat_arg2) {
+	if (ismat_arg1 && ismat_arg2)
+	{
 		mat44* a = (mat44*)lua_touserdata(L, 1);
 		mat44* b = (mat44*)l_checkmat(a->rows, a->cols, L, 2);
 
 		lua_pushcfunction(L, l_mat_new);
 		FOR_MAT(i, k, a->rows, a->cols,
-				lua_pushnumber(L, a->m[i * a->cols + k] * b->m[i * b->cols + k]));
+		        lua_pushnumber(L, a->m[i * a->cols + k] * b->m[i * b->cols + k]));
 		lua_call(L, a->rows * a->cols, 1);
 		return 1;
 	}
@@ -852,10 +900,13 @@ static int l_mat___concat(lua_State* L)
 	luaL_Buffer b;
 	luaL_buffinit(L, &b);
 
-	if (ismat_arg1) {
+	if (ismat_arg1)
+	{
 		l_mat___tostring(L);
 		lua_pushvalue(L, 3);
-	} else {
+	}
+	else
+	{
 		// places tostring(arg2) at index 2
 		lua_pushcfunction(L, l_mat___tostring);
 		lua_insert(L, 2);
@@ -879,7 +930,8 @@ static int l_mat___len(lua_State* L)
 
 static int l_mat___eq(lua_State* L)
 {
-	if (!l_isanymat(L,1) && !l_isanymat(L, 2)) {
+	if (!l_isanymat(L,1) && !l_isanymat(L, 2))
+	{
 		lua_pushboolean(L, 0);
 		return 1;
 	}
@@ -887,14 +939,15 @@ static int l_mat___eq(lua_State* L)
 	mat44* a = (mat44*)lua_touserdata(L, 1);
 	mat44* b = (mat44*)lua_touserdata(L, 2);
 
-	if (a->rows != b-> rows || a->cols != b-> cols) {
+	if (a->rows != b-> rows || a->cols != b-> cols)
+	{
 		lua_pushboolean(L, 0);
 		return 1;
 	}
 
 	int equal = 1;
 	FOR_MAT(i, k, a->rows, a->cols,
-			equal = equal && (a->m[i * a->cols + k] != b->m[i * b->cols + k]));
+	        equal = equal && (a->m[i * a->cols + k] != b->m[i * b->cols + k]));
 
 	lua_pushboolean(L, equal);
 	return 1;
@@ -911,7 +964,8 @@ static int l_mat___call(lua_State* L)
 	if (k < 1 || k > a->cols)
 		return luaL_error(L, "Column index out of bounds: %d (1 <= col <= %d)", k, a->cols);
 
-	--i; --k;
+	--i;
+	--k;
 	lua_pushnumber(L, a->m[i * a->cols + k]);
 	return 1;
 }
@@ -924,7 +978,7 @@ static int l_mat_clone(lua_State* L)
 
 	lua_pushcfunction(L, l_mat_new);
 	FOR_MAT(i, k, m->rows, m->cols,
-			lua_pushnumber(L, m->m[i * m->cols + k]));
+	        lua_pushnumber(L, m->m[i * m->cols + k]));
 	lua_call(L, m->rows * m->cols, 1);
 	return 1;
 }
@@ -937,12 +991,12 @@ static int l_mat_map(lua_State* L)
 
 	lua_pushcfunction(L, l_mat_new);
 	FOR_MAT(i, k, m->rows, m->cols,
-			lua_pushvalue(L, 2);
-			lua_pushnumber(L, m->m[i * m->cols + k]);
-			lua_pushinteger(L, i);
-			lua_pushinteger(L, k);
-			lua_call(L, 3, 1);
-			m->m[i * m->cols + k] = lua_tonumber(L, -1));
+	        lua_pushvalue(L, 2);
+	        lua_pushnumber(L, m->m[i * m->cols + k]);
+	        lua_pushinteger(L, i);
+	        lua_pushinteger(L, k);
+	        lua_call(L, 3, 1);
+	        m->m[i * m->cols + k] = lua_tonumber(L, -1));
 
 	lua_settop(L, 1);
 	return 1;
@@ -952,7 +1006,7 @@ static int l_mat_unpack(lua_State* L)
 {
 	mat44* m = (mat44*)luaL_checkudata(L, 1, MAT_INTERNAL_NAME);
 	FOR_MAT(i, k, m->rows, m->cols,
-			lua_pushnumber(L, m->m[i * m->cols + k]));
+	        lua_pushnumber(L, m->m[i * m->cols + k]));
 	return m->rows * m->cols;
 }
 
@@ -962,9 +1016,9 @@ static int l_mat_reset(lua_State* L)
 	GLfloat res[16] = {.0,.0,.0,.0, .0,.0,.0,.0, .0,.0,.0,.0, .0,.0,.0,.0};
 
 	FOR_MAT(i, k, m->rows, m->cols,
-		res[i * m->cols + k] = luaL_checknumber(L, i * m->cols + k));
+	        res[i * m->cols + k] = luaL_checknumber(L, i * m->cols + k));
 	FOR_MAT(i, k, m->rows, m->cols,
-		m->m[i * m->cols + k] = res[i * m->cols + k]);
+	        m->m[i * m->cols + k] = res[i * m->cols + k]);
 
 	lua_settop(L, 1);
 	return 1;
@@ -981,7 +1035,8 @@ static int l_mat_get(lua_State* L)
 	if (k < 1 || k > m->cols)
 		return luaL_error(L, "Column index out of bounds: %d (1 <= col <= %d)", k, m->cols);
 
-	--i; --k;
+	--i;
+	--k;
 
 	lua_pushnumber(L, m->m[i * m->cols + k]);
 	return 1;
@@ -999,7 +1054,8 @@ static int l_mat_set(lua_State* L)
 	if (k < 1 || k > m->cols)
 		return luaL_error(L, "Column index out of bounds: %d (1 <= col <= %d)", k, m->cols);
 
-	--i; --k;
+	--i;
+	--k;
 	m->m[i * m->cols + k] = val;
 	return 0;
 }
@@ -1012,32 +1068,33 @@ static int l_mat_permul(lua_State* L)
 static int l_mat_det(lua_State* L)
 {
 	mat44* m = (mat44*)luaL_checkudata(L, 1, MAT_INTERNAL_NAME);
-	switch (m->cols) {
-		case 2:
-			lua_pushnumber(L, m->m[0] * m->m[3] - m->m[1] * m->m[2]);
-			break;
-		case 3:
-			lua_pushnumber(L,
-					  m->m[0] * (m->m[4] * m->m[8] - m->m[5] * m->m[7])
-					+ m->m[1] * (m->m[5] * m->m[6] - m->m[8] * m->m[3])
-					+ m->m[2] * (m->m[3] * m->m[7] - m->m[4] * m->m[6]));
-			break;
-		case 4:
-			// hopefully there is no error here...
-			lua_pushnumber(L,
-					  m->m[0] * (  m->m[5] * (m->m[10] * m->m[15] - m->m[11] * m->m[14])
-					             - m->m[6] * (m->m[15] * m->m[9]  - m->m[11] * m->m[13])
-					             + m->m[7] * (m->m[14] * m->m[9]  - m->m[10] * m->m[13]))
-					- m->m[1] * (  m->m[4] * (m->m[10] * m->m[15] - m->m[11] * m->m[14])
-					             - m->m[6] * (m->m[15] * m->m[8]  - m->m[11] * m->m[12])
-					             + m->m[7] * (m->m[14] * m->m[8]  - m->m[10] * m->m[12]))
-					+ m->m[2] * (  m->m[4] * (m->m[15] * m->m[9]  - m->m[11] * m->m[13])
-					             + m->m[7] * (m->m[13] * m->m[8]  - m->m[12] * m->m[9])
-					             - m->m[5] * (m->m[15] * m->m[8]  - m->m[11] * m->m[12]))
-					- m->m[3] * (  m->m[4] * (m->m[14] * m->m[9]  - m->m[10] * m->m[13])
-					             - m->m[5] * (m->m[14] * m->m[8]  - m->m[10] * m->m[12])
-					             + m->m[6] * (m->m[13] * m->m[8]  - m->m[12] * m->m[9])));
-			break;
+	switch (m->cols)
+	{
+	case 2:
+		lua_pushnumber(L, m->m[0] * m->m[3] - m->m[1] * m->m[2]);
+		break;
+	case 3:
+		lua_pushnumber(L,
+		               m->m[0] * (m->m[4] * m->m[8] - m->m[5] * m->m[7])
+		               + m->m[1] * (m->m[5] * m->m[6] - m->m[8] * m->m[3])
+		               + m->m[2] * (m->m[3] * m->m[7] - m->m[4] * m->m[6]));
+		break;
+	case 4:
+		// hopefully there is no error here...
+		lua_pushnumber(L,
+		               m->m[0] * (  m->m[5] * (m->m[10] * m->m[15] - m->m[11] * m->m[14])
+		                            - m->m[6] * (m->m[15] * m->m[9]  - m->m[11] * m->m[13])
+		                            + m->m[7] * (m->m[14] * m->m[9]  - m->m[10] * m->m[13]))
+		               - m->m[1] * (  m->m[4] * (m->m[10] * m->m[15] - m->m[11] * m->m[14])
+		                              - m->m[6] * (m->m[15] * m->m[8]  - m->m[11] * m->m[12])
+		                              + m->m[7] * (m->m[14] * m->m[8]  - m->m[10] * m->m[12]))
+		               + m->m[2] * (  m->m[4] * (m->m[15] * m->m[9]  - m->m[11] * m->m[13])
+		                              + m->m[7] * (m->m[13] * m->m[8]  - m->m[12] * m->m[9])
+		                              - m->m[5] * (m->m[15] * m->m[8]  - m->m[11] * m->m[12]))
+		               - m->m[3] * (  m->m[4] * (m->m[14] * m->m[9]  - m->m[10] * m->m[13])
+		                              - m->m[5] * (m->m[14] * m->m[8]  - m->m[10] * m->m[12])
+		                              + m->m[6] * (m->m[13] * m->m[8]  - m->m[12] * m->m[9])));
+		break;
 	}
 	return 1;
 }
@@ -1048,7 +1105,7 @@ static int l_mat_transposed(lua_State* L)
 
 	lua_pushcfunction(L, l_mat_new);
 	FOR_MAT(i, k, m->rows, m->cols,
-			lua_pushnumber(L, m->m[k * m->cols + i]));
+	        lua_pushnumber(L, m->m[k * m->cols + i]));
 	lua_call(L, m->rows * m->cols, 1);
 	return 1;
 }
@@ -1059,9 +1116,9 @@ static int l_mat_transpose_inplace(lua_State* L)
 	GLfloat tmp[16] = {.0,.0,.0,.0, .0,.0,.0,.0, .0,.0,.0,.0, .0,.0,.0,.0};
 
 	FOR_MAT(i, k, m->rows, m->cols,
-			tmp[k * m->cols + i] = m->m[i * m->cols + k]);
+	        tmp[k * m->cols + i] = m->m[i * m->cols + k]);
 	FOR_MAT(i, k, m->rows, m->cols,
-			m->m[i * m->cols + k] = tmp[i * m->cols + k]);
+	        m->m[i * m->cols + k] = tmp[i * m->cols + k]);
 	return 1;
 }
 
@@ -1071,7 +1128,7 @@ static int l_mat_trace(lua_State* L)
 
 	lua_pushcfunction(L, l_vec_new);
 	FOR_MAT_ITER(i, m->cols,
-			lua_pushnumber(L, m->m[i * m->cols + i]));
+	             lua_pushnumber(L, m->m[i * m->cols + i]));
 	lua_call(L, m->cols, 1);
 	return 1;
 }
@@ -1082,28 +1139,31 @@ static int l_mat_new(lua_State* L)
 {
 	int dim = lua_gettop(L);
 	mat44* m = NULL;
-	switch (dim) {
-		case 2*2:
-			m = (mat44*)lua_newuserdata(L, sizeof(mat22));
-			m->cols = m->rows = 2;
-			break;
-		case 3*3:
-			m = (mat44*)lua_newuserdata(L, sizeof(mat33));
-			m->cols = m->rows = 3;
-			break;
-		case 4*4:
-			m = (mat44*)lua_newuserdata(L, sizeof(mat44));
-			m->cols = m->rows = 4;
-			break;
-		default:
-			return luaL_error(L, "Invalid matrix dimension: %d",(int)sqrt((double)(dim)));
+	switch (dim)
+	{
+	case 2*2:
+		m = (mat44*)lua_newuserdata(L, sizeof(mat22));
+		m->cols = m->rows = 2;
+		break;
+	case 3*3:
+		m = (mat44*)lua_newuserdata(L, sizeof(mat33));
+		m->cols = m->rows = 3;
+		break;
+	case 4*4:
+		m = (mat44*)lua_newuserdata(L, sizeof(mat44));
+		m->cols = m->rows = 4;
+		break;
+	default:
+		return luaL_error(L, "Invalid matrix dimension: %d",(int)sqrt((double)(dim)));
 	}
 
 	for (int i = 1; i <= dim; ++i)
 		m->m[i-1] = luaL_checknumber(L, i);
 
-	if (luaL_newmetatable(L, MAT_INTERNAL_NAME)) {
-		luaL_reg meta[] = {
+	if (luaL_newmetatable(L, MAT_INTERNAL_NAME))
+	{
+		luaL_reg meta[] =
+		{
 			// matrix meta methods
 			{"__index",           l_mat___index},
 			{"__tostring",        l_mat___tostring},
@@ -1178,10 +1238,10 @@ static int l_unit(lua_State* L)
 {
 	GLfloat s = luaL_optnumber(L, 1, 1.);
 	MAKE_MATRIX(
-			 s, .0, .0, .0,
-			.0,  s, .0, .0,
-			.0, .0,  s, .0,
-			.0, .0, .0,  s);
+	    s, .0, .0, .0,
+	    .0,  s, .0, .0,
+	    .0, .0,  s, .0,
+	    .0, .0, .0,  s);
 	return 1;
 }
 
@@ -1210,10 +1270,10 @@ static int l_rotate(lua_State* L)
 	GLfloat yz = a[1] * a[2];
 
 	MAKE_MATRIX(
-			xx*ic +   c,  xy*ic - z*s,  xz*ic + y*s, .0,
-			xy*ic + z*s,  yy*ic +   c,  yz*ic - x*s, .0,
-			xz*ic - y*s,  yz*ic + x*s,  zz*ic +   c, .0,
-			         .0,           .0,           .0, 1.);
+	    xx*ic +   c,  xy*ic - z*s,  xz*ic + y*s, .0,
+	    xy*ic + z*s,  yy*ic +   c,  yz*ic - x*s, .0,
+	    xz*ic - y*s,  yz*ic + x*s,  zz*ic +   c, .0,
+	    .0,           .0,           .0, 1.);
 	return 1;
 }
 
@@ -1222,15 +1282,16 @@ static int l_scale(lua_State* L)
 	GLfloat sx = luaL_checknumber(L, 1);
 	GLfloat sy = sx;
 	GLfloat sz = sx;
-	if (lua_gettop(L) == 3) {
+	if (lua_gettop(L) == 3)
+	{
 		sy = luaL_checknumber(L, 2);
 		sz = luaL_checknumber(L, 3);
 	}
 	MAKE_MATRIX(
-			sx, .0, .0, .0,
-			.0, sy, .0, .0,
-			.0, .0, sz, .0,
-			.0, .0, .0, 1.);
+	    sx, .0, .0, .0,
+	    .0, sy, .0, .0,
+	    .0, .0, sz, .0,
+	    .0, .0, .0, 1.);
 	return 1;
 }
 
@@ -1238,10 +1299,10 @@ static int l_translate(lua_State* L)
 {
 	vec4* v = (vec4*)luaL_checkudata(L, 1, VEC_INTERNAL_NAME);
 	MAKE_MATRIX(
-			1., .0, .0, v->v[0],
-			.0, 1., .0, v->v[1],
-			.0, .0, .1, v->dim > 2 ? v->v[2] : .0,
-			.0, .0, .0, v->dim > 3 ? v->v[3] : 1.);
+	    1., .0, .0, v->v[0],
+	    .0, 1., .0, v->v[1],
+	    .0, .0, .1, v->dim > 2 ? v->v[2] : .0,
+	    .0, .0, .0, v->dim > 3 ? v->v[3] : 1.);
 	return 1;
 }
 
@@ -1271,10 +1332,10 @@ static int l_lookAt(lua_State* L)
 
 	GLfloat *e = eye->v;
 	MAKE_MATRIX(
-			 s[0],  s[1],  s[2], -e[0]*s[0] - e[1]*s[1] - e[2]*s[2],
-			 u[0],  u[1],  u[2], -e[0]*u[0] - e[1]*u[1] - e[2]*u[2],
-			-f[0], -f[1], -f[2],  e[0]*f[0] + e[1]*f[1] + e[2]*f[2],
-			   .0,    .0,    .0,                                 1.);
+	    s[0],  s[1],  s[2], -e[0]*s[0] - e[1]*s[1] - e[2]*s[2],
+	    u[0],  u[1],  u[2], -e[0]*u[0] - e[1]*u[1] - e[2]*u[2],
+	    -f[0], -f[1], -f[2],  e[0]*f[0] + e[1]*f[1] + e[2]*f[2],
+	    .0,    .0,    .0,                                 1.);
 	return 1;
 }
 
@@ -1286,22 +1347,23 @@ static int l_ortho(lua_State* L)
 	GLfloat b = luaL_checknumber(L, 3); // bottom
 	GLfloat t = luaL_checknumber(L, 4); // top
 
-	if (lua_gettop(L) == 4) {
+	if (lua_gettop(L) == 4)
+	{
 		MAKE_MATRIX(
-				2./(r-l),       .0, .0, (l+r)/(l-r),
-				      .0, 2./(t-b), .0, (b+t)/(b-t),
-				      .0,       .0, .0,         -1.,
-				      .0,       .0, .0,          1.);
+		    2./(r-l),       .0, .0, (l+r)/(l-r),
+		    .0, 2./(t-b), .0, (b+t)/(b-t),
+		    .0,       .0, .0,         -1.,
+		    .0,       .0, .0,          1.);
 		return 1;
 	}
 
 	GLfloat n = luaL_checknumber(L, 5); // near
 	GLfloat f = luaL_checknumber(L, 6); // far
 	MAKE_MATRIX(
-			2./(r-l),       .0,       .0, (l+r)/(l-r),
-			      .0, 2./(t-b),       .0, (b+t)/(b-t),
-			      .0,       .0, 2./(n-f), (n+f)/(n-f),
-			      .0,       .0,       .0,          1.);
+	    2./(r-l),       .0,       .0, (l+r)/(l-r),
+	    .0, 2./(t-b),       .0, (b+t)/(b-t),
+	    .0,       .0, 2./(n-f), (n+f)/(n-f),
+	    .0,       .0,       .0,          1.);
 	return 1;
 }
 
@@ -1312,22 +1374,23 @@ static int l_perspective(lua_State* L)
 
 	GLfloat f = 1. / tan(fovy * M_PI / 360.);
 
-	if (lua_gettop(L) == 2) {
+	if (lua_gettop(L) == 2)
+	{
 		MAKE_MATRIX(
-				f/aspect, .0,  .0, .0,
-				      .0,  f,  .0, .0,
-				      .0, .0, -1., .0,
-				      .0, .0, -1., .0);
+		    f/aspect, .0,  .0, .0,
+		    .0,  f,  .0, .0,
+		    .0, .0, -1., .0,
+		    .0, .0, -1., .0);
 		return 1;
 	}
 
 	GLfloat near   = luaL_checknumber(L, 3);
 	GLfloat far    = luaL_checknumber(L, 4);
 	MAKE_MATRIX(
-			f/aspect, .0,                    .0,                     .0,
-			      .0,  f,                    .0,                     .0,
-			      .0, .0, (far+near)/(near-far), 2.*near*far/(near-far),
-			      .0, .0,                   -1.,                     .0);
+	    f/aspect, .0,                    .0,                     .0,
+	    .0,  f,                    .0,                     .0,
+	    .0, .0, (far+near)/(near-far), 2.*near*far/(near-far),
+	    .0, .0,                   -1.,                     .0);
 	return 1;
 }
 
@@ -1341,22 +1404,24 @@ static int l_frustum(lua_State* L)
 	GLfloat f = luaL_checknumber(L, 6); // far
 
 	MAKE_MATRIX(
-			2*n/(r-l),        .0, (r+l)/(r-l),  .0,
-			       .0, 2*n/(t-b), (t+b)/(t-b),  .0,
-			       .0,        .0, (n+f)/(n-f), 2*f*n/(n-f),
-			       .0,        .0,         -1.,  .0);
+	    2*n/(r-l),        .0, (r+l)/(r-l),  .0,
+	    .0, 2*n/(t-b), (t+b)/(t-b),  .0,
+	    .0,        .0, (n+f)/(n-f), 2*f*n/(n-f),
+	    .0,        .0,         -1.,  .0);
 	return 1;
 }
 
 int luaopen_G4L_math(lua_State* L)
 {
-	luaL_reg module[] = {
+	luaL_reg module[] =
+	{
 		{"vector",  l_vec_new},
 		{"matrix",  l_mat_new},
 		{NULL, NULL}
 	};
 
-	luaL_reg model[] = {
+	luaL_reg model[] =
+	{
 		{"unit",        l_unit},
 		{"rotate",      l_rotate},
 		{"scale",       l_scale},
@@ -1364,12 +1429,14 @@ int luaopen_G4L_math(lua_State* L)
 		{NULL, NULL}
 	};
 
-	luaL_reg view[] = {
+	luaL_reg view[] =
+	{
 		{"lookAt",      l_lookAt},
 		{NULL, NULL}
 	};
 
-	luaL_reg project[] = {
+	luaL_reg project[] =
+	{
 		{"ortho",       l_ortho},
 		{"perspective", l_perspective},
 		{"frustum",     l_frustum},

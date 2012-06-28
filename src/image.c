@@ -26,8 +26,10 @@ static int l_image_map(lua_State* L)
 		return luaL_typerror(L, 2, "function");
 
 	rgba_pixel* pixel = (rgba_pixel*)img->data;
-	for (int x = 0; x < img->width; ++x) {
-		for (int y = 0; y < img->height; ++y) {
+	for (int x = 0; x < img->width; ++x)
+	{
+		for (int y = 0; y < img->height; ++y)
+		{
 			lua_pushvalue(L, 2);
 			lua_pushinteger(L, x);
 			lua_pushinteger(L, y);
@@ -100,14 +102,19 @@ static int l_image___index(lua_State* L)
 
 	image* img = (image*)lua_touserdata(L, 1);
 	const char* key = lua_tostring(L, 2);
-	if (0 == strcmp(key, "width")) {
+	if (0 == strcmp(key, "width"))
+	{
 		lua_pushinteger(L, img->width);
-	} else if (0 == strcmp(key, "height")) {
+	}
+	else if (0 == strcmp(key, "height"))
+	{
 		lua_pushinteger(L, img->height);
-	} else {
+	}
+	else
+	{
 		lua_pushnil(L);
 	}
-	
+
 	return 1;
 }
 
@@ -129,8 +136,10 @@ int l_image_new(lua_State* L)
 	else
 		push_image_from_file(L);
 
-	if (luaL_newmetatable(L, INTERNAL_NAME)) {
-		luaL_reg meta[] = {
+	if (luaL_newmetatable(L, INTERNAL_NAME))
+	{
+		luaL_reg meta[] =
+		{
 			{"__gc",    l_image___gc},
 			{"__index", l_image___index},
 			{"map",     l_image_map},
@@ -159,10 +168,11 @@ static void push_image_from_dimensions(lua_State* L)
 		luaL_error(L, "Cannot allocate image memory");
 }
 
-typedef enum {
-	DECODE_OK,
-	DECODE_ERR,
-	DECODE_WRONG_FORMAT
+typedef enum
+{
+    DECODE_OK,
+    DECODE_ERR,
+    DECODE_WRONG_FORMAT
 } decode_status;
 
 // on success, return DECODE_OK
@@ -210,14 +220,16 @@ static void _png_error_function(png_structp reader, png_const_charp error_msg)
 static decode_status _decode_png(lua_State* L, FILE* fp, int* w, int* h, void** data)
 {
 	png_byte signature[8];
-	if (8 != fread(signature, 1, 8, fp)) {
+	if (8 != fread(signature, 1, 8, fp))
+	{
 		rewind(fp);
 		lua_pushstring(L, "Cannot file png signature");
 		return DECODE_ERR;
 	}
 
 	int is_png = !png_sig_cmp(signature, 0, 8);
-	if (0 == is_png) {
+	if (0 == is_png)
+	{
 		rewind(fp);
 		return DECODE_WRONG_FORMAT;
 	}
@@ -226,13 +238,15 @@ static decode_status _decode_png(lua_State* L, FILE* fp, int* w, int* h, void** 
 	png_infop info     = NULL;
 
 	reader = png_create_read_struct(PNG_LIBPNG_VER_STRING, (void*)L, _png_error_function, NULL);
-	if (NULL == reader) {
+	if (NULL == reader)
+	{
 		lua_pushstring(L, "Cannot create reader");
 		goto error;
 	}
 
 	info = png_create_info_struct(reader);
-	if (NULL == info) {
+	if (NULL == info)
+	{
 		lua_pushstring(L, "Cannot create header object");
 		goto error;
 	}
@@ -256,13 +270,14 @@ static decode_status _decode_png(lua_State* L, FILE* fp, int* w, int* h, void** 
 	else if (PNG_COLOR_TYPE_GRAY == color_type)
 		png_set_gray_to_rgb(reader);
 
-	if (16 == bdepth) {
+	if (16 == bdepth)
+	{
 #if PNG_LIBPNG_VER >= 10504
 		png_set_scale_16(reader);
 #else
 		png_set_strip_16(reader);
 #endif
-	 }
+	}
 	if (!(color_type & PNG_COLOR_MASK_ALPHA))
 		png_set_add_alpha(reader, 255, PNG_FILLER_AFTER);
 
@@ -271,7 +286,8 @@ static decode_status _decode_png(lua_State* L, FILE* fp, int* w, int* h, void** 
 	png_uint_32 rowbytes = png_get_rowbytes(reader, info);
 
 	*data = malloc(sizeof(png_byte) * rowbytes * height);
-	if (NULL == data) {
+	if (NULL == data)
+	{
 		lua_pushstring(L, "Cannot allocate memory for image data");
 		goto error;
 	}
@@ -290,21 +306,23 @@ static decode_status _decode_png(lua_State* L, FILE* fp, int* w, int* h, void** 
 	return DECODE_OK;
 
 error:
-	if (NULL != *data) {
+	if (NULL != *data)
+	{
 		free(*data);
 		*data = NULL;
 	}
 	png_destroy_read_struct(
-			(NULL == reader)   ? &reader   : (png_structpp)NULL,
-			(NULL == info)     ? &info     : (png_infopp)NULL,
-			(png_infopp)NULL);
+	    (NULL == reader)   ? &reader   : (png_structpp)NULL,
+	    (NULL == info)     ? &info     : (png_infopp)NULL,
+	    (png_infopp)NULL);
 	rewind(fp);
 	return DECODE_ERR;
 }
 
 
 //// JPEG DECODING ////
-struct _jpeg_error_mgr {
+struct _jpeg_error_mgr
+{
 	struct jpeg_error_mgr info;
 	lua_State* L;
 	jmp_buf setjmp_buffer;
@@ -330,13 +348,15 @@ static decode_status _decode_jpeg(lua_State* L, FILE* fp, int* w, int* h, void**
 	jpeg_create_decompress(&reader);
 	jpeg_stdio_src(&reader, fp);
 	int status = jpeg_read_header(&reader, 0);
-	if (JPEG_HEADER_OK != status) {
+	if (JPEG_HEADER_OK != status)
+	{
 		jpeg_destroy_decompress(&reader);
 		return DECODE_WRONG_FORMAT;
 	}
 
 	jpeg_start_decompress(&reader);
-	if (JCS_RGB != reader.out_color_space || reader.output_components != 3) {
+	if (JCS_RGB != reader.out_color_space || reader.output_components != 3)
+	{
 		lua_pushstring(L, "Unsupported JPEG format: Only 8-bit RGB images are supported");
 		goto error;
 	}
@@ -348,14 +368,17 @@ static decode_status _decode_jpeg(lua_State* L, FILE* fp, int* w, int* h, void**
 	*data = malloc(sizeof(rgba_pixel) * reader.output_height * reader.output_width);
 	rgba_pixel* pixel = (rgba_pixel*)*data;
 
-	while (reader.output_scanline < reader.output_height) {
-		if (1 != jpeg_read_scanlines(&reader, buffer, 1)) {
+	while (reader.output_scanline < reader.output_height)
+	{
+		if (1 != jpeg_read_scanlines(&reader, buffer, 1))
+		{
 			lua_pushstring(L, "Cannot read scanline");
 			goto error;
 		}
 
 		// put RGB data as RGBA
-		for (int x = 0; x < row_stride; x += reader.output_components, ++pixel) {
+		for (int x = 0; x < row_stride; x += reader.output_components, ++pixel)
+		{
 			memcpy(pixel, buffer[0]+x, 3);
 			pixel->a = 255;
 		}
@@ -366,7 +389,8 @@ static decode_status _decode_jpeg(lua_State* L, FILE* fp, int* w, int* h, void**
 	return DECODE_OK;
 
 error:
-	if (NULL != *data) {
+	if (NULL != *data)
+	{
 		free(*data);
 		*data = NULL;
 	}

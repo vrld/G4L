@@ -20,7 +20,8 @@ static lua_State* LUA = NULL;
 
 inline static int _getOptColor(lua_State* L, int idx, GLfloat *c)
 {
-	if (l_isvec4(L, idx)) {
+	if (l_isvec4(L, idx))
+	{
 		vec4* c = (vec4*)lua_touserdata(L, idx);
 		memcpy(c, c->v, 4 * sizeof(GLfloat));
 		return 1;
@@ -78,7 +79,8 @@ static int l_enable(lua_State* L)
 {
 	int top = lua_gettop(L);
 	GLenum cap;
-	for (int i = 1; i <= top; ++i) {
+	for (int i = 1; i <= top; ++i)
+	{
 		cap = luaL_checkinteger(L, i);
 		glGetError();
 		glEnable(cap);
@@ -92,7 +94,8 @@ static int l_disable(lua_State* L)
 {
 	int top = lua_gettop(L);
 	GLenum cap;
-	for (int i = 1; i <= top; ++i) {
+	for (int i = 1; i <= top; ++i)
+	{
 		cap = luaL_checkinteger(L, i);
 		glGetError();
 		glDisable(cap);
@@ -106,7 +109,8 @@ static int l_isEnabled(lua_State* L)
 {
 	int top = lua_gettop(L);
 	GLenum cap;
-	for (int i = 1; i <= top; ++i) {
+	for (int i = 1; i <= top; ++i)
+	{
 		cap = luaL_checkinteger(L, i);
 		glGetError();
 		GLboolean enabled = glIsEnabled(cap);
@@ -227,10 +231,13 @@ static void _glut_timer_cb(int ref)
 
 	// if returns number, continue timer in <number> seconds
 	// else -> stop timer
-	if (lua_isnumber(L, -1)) {
+	if (lua_isnumber(L, -1))
+	{
 		unsigned int msecs = (unsigned int)(lua_tonumber(L, -1) * 1000.);
 		glutTimerFunc(msecs, _glut_timer_cb, ref);
-	} else {
+	}
+	else
+	{
 		lua_rawseti(L, -2, ref);
 	}
 
@@ -268,7 +275,8 @@ int luaopen_G4L(lua_State* L)
 		return luaL_error(L, "G4L already opened");
 	LUA = L;
 
-	luaL_Reg reg[] = {
+	luaL_Reg reg[] =
+	{
 		// GLUT stuff
 		{"initMode",       l_initMode},
 		{"newWindow",      l_window_new},
@@ -303,7 +311,8 @@ int luaopen_G4L(lua_State* L)
 		{NULL, NULL}
 	};
 
-	l_constant_reg screen[] = {
+	l_constant_reg screen[] =
+	{
 		{"rgb",          GLUT_RGB},
 		{"rgba",         GLUT_RGBA},
 		{"index",        GLUT_INDEX},
@@ -318,7 +327,8 @@ int luaopen_G4L(lua_State* L)
 		{NULL, 0}
 	};
 
-	l_constant_reg flags[] = {
+	l_constant_reg flags[] =
+	{
 		{"blend",                      GL_BLEND},
 		//{"clip_distance?",             GL_CLIP_DISTANCEi}, --> figure this one out
 		{"color_logic_op",             GL_COLOR_LOGIC_OP}, // glLogicOp
@@ -344,7 +354,8 @@ int luaopen_G4L(lua_State* L)
 		{NULL, 0}
 	};
 
-	l_constant_reg cursor[] = {
+	l_constant_reg cursor[] =
+	{
 		{"right_arrow",          GLUT_CURSOR_RIGHT_ARROW},
 		{"left_arrow",           GLUT_CURSOR_LEFT_ARROW},
 		{"left_info",            GLUT_CURSOR_INFO},
@@ -372,7 +383,8 @@ int luaopen_G4L(lua_State* L)
 	};
 
 
-	l_constant_reg buffer[] = {
+	l_constant_reg buffer[] =
+	{
 		// target
 		{"array_buffer",              GL_ARRAY_BUFFER},
 		{"copy_read_buffer",          GL_COPY_READ_BUFFER},
@@ -407,8 +419,9 @@ int luaopen_G4L(lua_State* L)
 
 		{NULL, 0}
 	};
-	
-	l_constant_reg blend[] = {
+
+	l_constant_reg blend[] =
+	{
 		// glBlendFunc[Separate]
 		{"zero",                      GL_ZERO},
 		{"one",                       GL_ONE},
@@ -436,14 +449,16 @@ int luaopen_G4L(lua_State* L)
 		{NULL, 0}
 	};
 
-	l_constant_reg clear_bit[] = {
+	l_constant_reg clear_bit[] =
+	{
 		{"color",     GL_COLOR_BUFFER_BIT},
 		{"depth",     GL_DEPTH_BUFFER_BIT},
 		{"stencil",   GL_STENCIL_BUFFER_BIT},
 		{NULL, 0}
 	};
 
-	l_constant_reg stencil[] = {
+	l_constant_reg stencil[] =
+	{
 		// stencil functions
 		{"never",      GL_NEVER},
 		{"less",       GL_LESS},
@@ -467,7 +482,8 @@ int luaopen_G4L(lua_State* L)
 		{NULL, 0}
 	};
 
-	l_constant_reg draw_mode[] = {
+	l_constant_reg draw_mode[] =
+	{
 		{"points",                   GL_POINTS},
 		{"lines",                    GL_LINES},
 		{"line_strip",               GL_LINE_STRIP},
@@ -484,7 +500,8 @@ int luaopen_G4L(lua_State* L)
 		{NULL, 0}
 	};
 
-	l_constant_reg texture_flags[] = {
+	l_constant_reg texture_flags[] =
+	{
 		// wrap
 		{"clamp_to_edge",   GL_CLAMP_TO_EDGE},
 		{"clamp_to_border", GL_CLAMP_TO_BORDER},

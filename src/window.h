@@ -3,7 +3,8 @@
 
 struct lua_State;
 
-typedef struct Window {
+typedef struct Window
+{
 	int id;
 	struct lua_State* L;
 } Window;

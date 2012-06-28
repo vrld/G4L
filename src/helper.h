@@ -4,7 +4,8 @@
 struct lua_State;
 struct luaL_Reg;
 
-typedef struct l_constant_reg {
+typedef struct l_constant_reg
+{
 	const char* name;
 	unsigned int constant;
 } l_constant_reg;

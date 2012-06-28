@@ -6,7 +6,8 @@
 
 struct lua_State;
 
-typedef struct {
+typedef struct
+{
 	GLuint id;
 	GLuint renderbuffer;
 	int width;

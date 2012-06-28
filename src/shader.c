@@ -35,7 +35,7 @@ static const char* UNIFORMS_NAME   = "G4L.Shader.uniforms";
 static const char* ATTRIBUTES_NAME = "G4L.Shader.attributes";
 
 static GLint get_location(lua_State*L, shader* s, const char* name,
-		const char* registry, GLint (APIENTRY *getter)(GLuint, const GLchar*))
+                          const char* registry, GLint (APIENTRY *getter)(GLuint, const GLchar*))
 {
 	lua_pushstring(L, registry);
 	lua_rawget(L, LUA_REGISTRYINDEX);
@@ -46,7 +46,8 @@ static GLint get_location(lua_State*L, shader* s, const char* name,
 	lua_rawget(L, -2);
 
 	// known
-	if (!lua_isnil(L, -1)) {
+	if (!lua_isnil(L, -1))
+	{
 		int location = lua_tointeger(L, -1);
 		lua_pop(L, 3);
 		return location;
@@ -54,7 +55,8 @@ static GLint get_location(lua_State*L, shader* s, const char* name,
 
 	// unknown: get and record it
 	int location = getter(s->id, name);
-	if (location == -1) {
+	if (location == -1)
+	{
 		lua_pop(L, 3);
 		return luaL_error(L, "`%s' not found. Maybe it's optimized out?", name);
 	}
@@ -77,9 +79,12 @@ shader* l_checkshader(lua_State* L, int idx)
 int l_shader_set(lua_State* L)
 {
 	shader* s = NULL;
-	if (lua_isnoneornil(L,1)) {
+	if (lua_isnoneornil(L,1))
+	{
 		glUseProgram(0);
-	} else {
+	}
+	else
+	{
 		s = l_checkshader(L, 1);
 		glUseProgram(s->id);
 	}
@@ -93,7 +98,8 @@ static int l_shader_enableAttribute(lua_State* L)
 	const char* name;
 	GLint location;
 
-	for (int i = 2; i <= lua_gettop(L); ++i) {
+	for (int i = 2; i <= lua_gettop(L); ++i)
+	{
 		name = luaL_checkstring(L, i);
 		location = get_attribute_location(L, s, name);
 		glEnableVertexAttribArray(location);
@@ -109,7 +115,8 @@ static int l_shader_disableAttribute(lua_State* L)
 	const char* name;
 	GLint location;
 
-	for (int i = 2; i <= lua_gettop(L); ++i) {
+	for (int i = 2; i <= lua_gettop(L); ++i)
+	{
 		name = luaL_checkstring(L, i);
 		location = get_attribute_location(L, s, name);
 		glDisableVertexAttribArray(location);
@@ -143,7 +150,7 @@ static int l_shader_bindAttribute(lua_State* L)
 
 	glBindBuffer(b->target, b->id);
 	glVertexAttribPointer(location, span, b->element_type, normalize,
-			b->element_size * stride, (GLvoid*)(b->element_size * (low-1)));
+	                      b->element_size * stride, (GLvoid*)(b->element_size * (low-1)));
 
 	lua_settop(L, 1);
 	return 1;
@@ -173,7 +180,8 @@ static int l_shader___index(lua_State* L)
 	glGetUniformfv(s->id, location, params);
 
 	lua_createtable(L, 16, 0);
-	for (int i = 0; i < 16; ++i) {
+	for (int i = 0; i < 16; ++i)
+	{
 		lua_pushnumber(L, params[i]);
 		lua_rawseti(L, -2, i+1);
 	}
@@ -189,43 +197,54 @@ static int l_shader___newindex(lua_State* L)
 
 	glUseProgram(s->id);
 
-	if (lua_isnumber(L, 3)) {
+	if (lua_isnumber(L, 3))
+	{
 		glUniform1f(location, lua_tonumber(L, 3));
-	} else if (l_isanyvec(L, 3)) {
+	}
+	else if (l_isanyvec(L, 3))
+	{
 		vec4* v = (vec4*)lua_touserdata(L, 3);
-		switch (v->dim) {
-			case 2:
-				glUniform2fv(location, 1, v->v);
-				break;
-			case 3:
-				glUniform3fv(location, 1, v->v);
-				break;
-			case 4:
-				glUniform4fv(location, 1, v->v);
-				break;
+		switch (v->dim)
+		{
+		case 2:
+			glUniform2fv(location, 1, v->v);
+			break;
+		case 3:
+			glUniform3fv(location, 1, v->v);
+			break;
+		case 4:
+			glUniform4fv(location, 1, v->v);
+			break;
 		}
-	} else if (l_isanymat(L, 3)) {
+	}
+	else if (l_isanymat(L, 3))
+	{
 		mat44* m = (mat44*)lua_touserdata(L, 3);
-		switch (m->rows) {
-			case 2:
-				glUniformMatrix2fv(location, 1, GL_TRUE, m->m);
-				break;
-			case 3:
-				glUniformMatrix3fv(location, 1, GL_TRUE, m->m);
-				break;
-			case 4:
-				glUniformMatrix4fv(location, 1, GL_TRUE, m->m);
-				break;
+		switch (m->rows)
+		{
+		case 2:
+			glUniformMatrix2fv(location, 1, GL_TRUE, m->m);
+			break;
+		case 3:
+			glUniformMatrix3fv(location, 1, GL_TRUE, m->m);
+			break;
+		case 4:
+			glUniformMatrix4fv(location, 1, GL_TRUE, m->m);
+			break;
 		}
-	} else if (l_istexture(L, 3)) {
+	}
+	else if (l_istexture(L, 3))
+	{
 		texture* tex = (texture*)lua_touserdata(L, 3);
 		texture_bind(tex);
 		glUniform1i(location, tex->unit);
-	} else {
+	}
+	else
+	{
 		if (NULL != active)
 			glUseProgram(active->id);
 		return luaL_error(L, "Cannot set value %s: Unknown type `%s'.",
-				name, lua_typename(L, lua_type(L, 3)));
+		                  name, lua_typename(L, lua_type(L, 3)));
 	}
 
 	if (NULL != active)
@@ -265,7 +284,8 @@ int l_shader_new(lua_State* L)
 	glShaderSource(vs, 1, &vs_source, NULL);
 	glCompileShader(vs);
 	glGetShaderiv(vs, GL_COMPILE_STATUS, &status);
-	if (!status) {
+	if (!status)
+	{
 		GLint len = 0;
 		glGetShaderiv(vs, GL_INFO_LOG_LENGTH, &len);
 		char* log = (char*)malloc(len+1);
@@ -281,7 +301,8 @@ int l_shader_new(lua_State* L)
 	glShaderSource(fs, 1, &fs_source, NULL);
 	glCompileShader(fs);
 	glGetShaderiv(fs, GL_COMPILE_STATUS, &status);
-	if (!status) {
+	if (!status)
+	{
 
 		GLint len = 0;
 		glGetShaderiv(fs, GL_INFO_LOG_LENGTH, &len);
@@ -301,7 +322,8 @@ int l_shader_new(lua_State* L)
 	glAttachShader(program, fs);
 	glLinkProgram(program);
 	glGetProgramiv(program, GL_LINK_STATUS, &status);
-	if (!status) {
+	if (!status)
+	{
 		GLint len = 0;
 		glGetProgramiv(program, GL_INFO_LOG_LENGTH, &len);
 		char* log = (char*)malloc(len+1);
@@ -322,8 +344,10 @@ int l_shader_new(lua_State* L)
 	shader* s = (shader*)lua_newuserdata(L, sizeof(shader));
 	s->id = program;
 
-	if (luaL_newmetatable(L, INTERNAL_NAME)) {
-		luaL_reg meta[] = {
+	if (luaL_newmetatable(L, INTERNAL_NAME))
+	{
+		luaL_reg meta[] =
+		{
 			{"__gc",       l_shader___gc},
 			{"__index",    l_shader___index},
 			{"__newindex", l_shader___newindex},

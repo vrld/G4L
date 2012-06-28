@@ -61,9 +61,10 @@ static int l_framebuffer_add_attachment(lua_State* L)
 	lua_rawseti(L, -2, attachment+1);
 
 	// attach texture
-	with_framebuffer(fbo->id) {
+	with_framebuffer(fbo->id)
+	{
 		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + attachment,
-				GL_TEXTURE_2D, tex->id, 0);
+		                       GL_TEXTURE_2D, tex->id, 0);
 	}
 
 	// return texture object
@@ -76,49 +77,52 @@ static int l_framebuffer_is_complete(lua_State* L)
 	framebuffer* fbo = l_checkframebuffer(L, 1);
 	GLenum status = GL_FRAMEBUFFER_COMPLETE;
 
-	with_framebuffer(fbo->id) {
+	with_framebuffer(fbo->id)
+	{
 		status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
 	}
 
 	int ok = GL_FRAMEBUFFER_COMPLETE == status;
 	lua_pushboolean(L, ok);
-	if (!ok) {
-		switch (status) {
-			case GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT:
-				lua_pushliteral(L, "Framebuffer attachments are incomplete");
-				break;
-			case GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT:
-				lua_pushliteral(L, "Framebuffer does not have an image attachment");
-				break;
-			case GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER:
-				lua_pushliteral(L, "Incomplete draw buffer");
-				break;
-			case GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER:
-				lua_pushliteral(L, "Incomplete read buffer");
-				break;
-			case GL_FRAMEBUFFER_UNSUPPORTED:
-				lua_pushliteral(L, "Combination of internal formats of attached images not supported by implementation");
-				break;
-			case GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE:
-				lua_pushliteral(L, "Incomplete multisample");
-				// returned if the value of GL_RENDERBUFFER_SAMPLES is not the
-				// same for all attached renderbuffers; if the value of
-				// GL_TEXTURE_SAMPLES is the not same for all attached
-				// textures; or, if the attached images are a mix of
-				// renderbuffers and textures, the value of
-				// GL_RENDERBUFFER_SAMPLES does not match the value of
-				// GL_TEXTURE_SAMPLES.
-				//
-				// also returned if the value of
-				// GL_TEXTURE_FIXED_SAMPLE_LOCATIONS is not the same for all
-				// attached textures; or, if the attached images are a mix of
-				// renderbuffers and textures, the value of
-				// GL_TEXTURE_FIXED_SAMPLE_LOCATIONS is not GL_TRUE for all
-				// attached textures.
-				break;
-			case GL_FRAMEBUFFER_INCOMPLETE_LAYER_TARGETS:
-				lua_pushliteral(L, "At least one attachment is layered and one is not or all color attachments are not textures from the same target");
-				break;
+	if (!ok)
+	{
+		switch (status)
+		{
+		case GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT:
+			lua_pushliteral(L, "Framebuffer attachments are incomplete");
+			break;
+		case GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT:
+			lua_pushliteral(L, "Framebuffer does not have an image attachment");
+			break;
+		case GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER:
+			lua_pushliteral(L, "Incomplete draw buffer");
+			break;
+		case GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER:
+			lua_pushliteral(L, "Incomplete read buffer");
+			break;
+		case GL_FRAMEBUFFER_UNSUPPORTED:
+			lua_pushliteral(L, "Combination of internal formats of attached images not supported by implementation");
+			break;
+		case GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE:
+			lua_pushliteral(L, "Incomplete multisample");
+			// returned if the value of GL_RENDERBUFFER_SAMPLES is not the
+			// same for all attached renderbuffers; if the value of
+			// GL_TEXTURE_SAMPLES is the not same for all attached
+			// textures; or, if the attached images are a mix of
+			// renderbuffers and textures, the value of
+			// GL_RENDERBUFFER_SAMPLES does not match the value of
+			// GL_TEXTURE_SAMPLES.
+			//
+			// also returned if the value of
+			// GL_TEXTURE_FIXED_SAMPLE_LOCATIONS is not the same for all
+			// attached textures; or, if the attached images are a mix of
+			// renderbuffers and textures, the value of
+			// GL_TEXTURE_FIXED_SAMPLE_LOCATIONS is not GL_TRUE for all
+			// attached textures.
+			break;
+		case GL_FRAMEBUFFER_INCOMPLETE_LAYER_TARGETS:
+			lua_pushliteral(L, "At least one attachment is layered and one is not or all color attachments are not textures from the same target");
+			break;
 		}
 	}
 	return 1;
@@ -135,14 +139,21 @@ static int l_framebuffer___index(lua_State* L)
 	framebuffer* fbo = (framebuffer*)lua_touserdata(L, 1);
 	const char* key = luaL_checkstring(L, 2);
 
-	if (0 == strcmp(key, "width")) {
+	if (0 == strcmp(key, "width"))
+	{
 		lua_pushinteger(L, fbo->width);
-	} else if (0 == strcmp(key, "height")) {
+	}
+	else if (0 == strcmp(key, "height"))
+	{
 		lua_pushinteger(L, fbo->height);
-	} else if (0 == strcmp(key, "textures")) {
+	}
+	else if (0 == strcmp(key, "textures"))
+	{
 		luaL_getmetatable(L, ATTACHMENTS_NAME);
 		lua_rawgeti(L, -1, fbo->id);
-	} else {
+	}
+	else
+	{
 		lua_pushnil(L);
 	}
 
@@ -172,14 +183,16 @@ int l_framebuffer_new(lua_State* L)
 	glGenFramebuffers(1, &id);
 
 	// make renderbuffer unless otherwise requested
-	if (lua_isnone(L, 3) || lua_toboolean(L, 3)) {
+	if (lua_isnone(L, 3) || lua_toboolean(L, 3))
+	{
 		printf("make renderbuffer\n");
 		glGenRenderbuffers(1, &renderbuffer);
 		glBindRenderbuffer(GL_RENDERBUFFER, renderbuffer);
 		glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_STENCIL, width, height);
 		glBindRenderbuffer(GL_RENDERBUFFER, 0);
 
-		with_framebuffer(id) {
+		with_framebuffer(id)
+		{
 			glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_RENDERBUFFER, renderbuffer);
 			glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,   GL_RENDERBUFFER, renderbuffer);
 		}
@@ -192,8 +205,10 @@ int l_framebuffer_new(lua_State* L)
 	fbo->width = width;
 	fbo->height = height;
 
-	if (luaL_newmetatable(L, INTERNAL_NAME)) {
-		luaL_reg meta[] = {
+	if (luaL_newmetatable(L, INTERNAL_NAME))
+	{
+		luaL_reg meta[] =
+		{
 			{"__gc",           l_framebuffer___gc},
 			{"__index",        l_framebuffer___index},
 			{"isComplete",     l_framebuffer_is_complete},
@@ -215,7 +230,8 @@ int l_framebuffer_new(lua_State* L)
 
 int l_framebuffer_bind(struct lua_State* L)
 {
-	if (lua_isnoneornil(L, 1)) {
+	if (lua_isnoneornil(L, 1))
+	{
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		return 0;
 	}

@@ -5,7 +5,8 @@
 
 struct lua_State;
 
-typedef struct shader {
+typedef struct shader
+{
 	GLuint id;
 } shader;
 

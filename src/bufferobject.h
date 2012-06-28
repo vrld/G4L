@@ -5,7 +5,8 @@
 
 struct lua_State;
 
-typedef struct bufferobject {
+typedef struct bufferobject
+{
 	GLuint  id;
 	GLenum  target;
 	GLenum  usage;

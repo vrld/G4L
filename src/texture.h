@@ -5,7 +5,8 @@
 
 struct lua_State;
 
-typedef struct {
+typedef struct
+{
 	GLuint id;
 	GLuint unit;
 	//GLenum target; <-- later, maybe

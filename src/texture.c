@@ -39,9 +39,12 @@ static int l_texture___index(lua_State* L)
 	texture* tex = (texture*)lua_touserdata(L, 1);
 	const char* key = luaL_checkstring(L, 2);
 
-	if (0 == strcmp(key, "unit")) {
+	if (0 == strcmp(key, "unit"))
+	{
 		lua_pushinteger(L, tex->unit);
-	} else {
+	}
+	else
+	{
 		lua_pushnil(L);
 	}
 
@@ -53,14 +56,17 @@ static int l_texture___newindex(lua_State* L)
 	texture* tex = (texture*)lua_touserdata(L, 1);
 	const char* key = luaL_checkstring(L, 2);
 
-	if (0 == strcmp(key, "unit")) {
+	if (0 == strcmp(key, "unit"))
+	{
 		int unit = luaL_checkinteger(L, 3);
 		if (unit < 1 || unit >= unit_max)
 			return luaL_error(L, "Invalid texture unit: %d", unit);
 
 		tex->unit = unit;
 		texture_bind(tex);
-	} else {
+	}
+	else
+	{
 		return luaL_error(L, "Cannot set property `%s'", key);
 	}
 
@@ -104,8 +110,8 @@ static int l_texture_setData(lua_State* L)
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, tex->id);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA,
-			(GLsizei)img->width, (GLsizei)img->height, 0,
-			GL_RGBA, GL_UNSIGNED_BYTE, img->data);
+	             (GLsizei)img->width, (GLsizei)img->height, 0,
+	             GL_RGBA, GL_UNSIGNED_BYTE, img->data);
 
 	lua_settop(L, 1);
 	return 1;
@@ -125,12 +131,15 @@ int l_texture_new(lua_State* L)
 	GLsizei width, height;
 	int idx_unit = 2;
 	void* data = NULL;
-	if (lua_isnumber(L, 1) && lua_isnumber(L, 2)) {
+	if (lua_isnumber(L, 1) && lua_isnumber(L, 2))
+	{
 		idx_unit++;
 		width  = lua_tonumber(L, 1);
 		height = lua_tonumber(L, 2);
 		data   = NULL;
-	} else {
+	}
+	else
+	{
 		image* img = l_checkimage(L, 1);
 		width  = img->width;
 		height = img->height;
@@ -157,14 +166,16 @@ int l_texture_new(lua_State* L)
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, wrap_t);
 
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0,
-			GL_RGBA, GL_UNSIGNED_BYTE, data);
+	             GL_RGBA, GL_UNSIGNED_BYTE, data);
 
 	texture* tex = (texture*)lua_newuserdata(L, sizeof(texture));
 	tex->id = id;
 	tex->unit = unit;
 
-	if (luaL_newmetatable(L, INTERNAL_NAME)) {
-		luaL_reg meta[] = {
+	if (luaL_newmetatable(L, INTERNAL_NAME))
+	{
+		luaL_reg meta[] =
+		{
 			{"__gc",       l_texture___gc},
 			{"__index",    l_texture___index},
 			{"__newinedx", l_texture___newindex},

@@ -43,11 +43,14 @@ static inline int get_callback(int win, const char* name)
 	lua_rawget(LUA, -2);
 
 	int is_function = lua_isfunction(LUA, -1);
-	if (is_function) {
+	if (is_function)
+	{
 		// leave only function on stack
 		lua_replace(LUA, -3);
 		lua_pop(LUA, 1);
-	} else {
+	}
+	else
+	{
 		lua_pop(LUA, 3);
 	}
 	return is_function;
@@ -111,11 +114,12 @@ int l_window_new(lua_State* L)
 	glutPassiveMotionFunc(_passiveMotion);
 	glutEntryFunc(_entry);
 
-	if (!context_available()) {
+	if (!context_available())
+	{
 		GLenum glew_status = glewInit();
 		if (GLEW_OK != glew_status)
 			return luaL_error(L, "Error initializing GLEW: %s",
-								glewGetErrorString(glew_status));
+			                  glewGetErrorString(glew_status));
 
 		// check for opengl 3.3
 		if (!GLEW_VERSION_3_3)
@@ -124,14 +128,16 @@ int l_window_new(lua_State* L)
 		context_set_available();
 	}
 
-	if (luaL_newmetatable(L, INTERNAL_NAME)) {
+	if (luaL_newmetatable(L, INTERNAL_NAME))
+	{
 		lua_pushcfunction(L, l_window___index);
 		lua_setfield(L, -2, "__index");
 
 		lua_pushcfunction(L, l_window___newindex);
 		lua_setfield(L, -2, "__newindex");
 
-		luaL_Reg reg[] = {
+		luaL_Reg reg[] =
+		{
 			{"__gc",       l_window___gc},
 			{"destroy",    l_window_destroy},
 			{"redraw",     l_window_redraw},
@@ -177,27 +183,40 @@ static int l_window___index(lua_State* L)
 
 	int current = glutGetWindow();
 	glutSetWindow(win->id);
-	if (0 == strcmp("pos", key)) {
+	if (0 == strcmp("pos", key))
+	{
 		lua_createtable(L, 2, 0);
 		lua_pushinteger(L, glutGet(GLUT_WINDOW_X));
 		lua_setfield(L, -2, "x");
 		lua_pushinteger(L, glutGet(GLUT_WINDOW_Y));
 		lua_setfield(L, -2, "y");
-	} else if (0 == strcmp("x", key)) {
+	}
+	else if (0 == strcmp("x", key))
+	{
 		lua_pushinteger(L, glutGet(GLUT_WINDOW_X));
-	} else if (0 == strcmp("y", key)) {
+	}
+	else if (0 == strcmp("y", key))
+	{
 		lua_pushinteger(L, glutGet(GLUT_WINDOW_Y));
-	} else if (0 == strcmp("size", key)) {
+	}
+	else if (0 == strcmp("size", key))
+	{
 		lua_createtable(L, 2, 0);
 		lua_pushinteger(L, glutGet(GLUT_WINDOW_WIDTH));
 		lua_setfield(L, -2, "width");
 		lua_pushinteger(L, glutGet(GLUT_WINDOW_HEIGHT));
 		lua_setfield(L, -2, "height");
-	} else if (0 == strcmp("width", key)) {
+	}
+	else if (0 == strcmp("width", key))
+	{
 		lua_pushinteger(L, glutGet(GLUT_WINDOW_WIDTH));
-	} else if (0 == strcmp("height", key)) {
+	}
+	else if (0 == strcmp("height", key))
+	{
 		lua_pushinteger(L, glutGet(GLUT_WINDOW_HEIGHT));
-	} else {
+	}
+	else
+	{
 		lua_pushnil(L);
 	}
 	glutSetWindow(current);
@@ -212,16 +231,17 @@ static int l_window___newindex(lua_State* L)
 		return luaL_typerror(L, 3, "function");
 
 	if ((0 != strcmp("draw", key)) &&
-	    (0 != strcmp("reshape", key)) &&
-	    (0 != strcmp("update", key)) &&
-	    (0 != strcmp("visibility", key)) &&
-	    (0 != strcmp("keyboard", key)) &&
-	    (0 != strcmp("mousereleased", key)) &&
-	    (0 != strcmp("mousepressed", key)) &&
-	    (0 != strcmp("mousedrag", key)) &&
-	    (0 != strcmp("mousemove", key)) &&
-	    (0 != strcmp("mouseleave", key)) &&
-	    (0 != strcmp("mouseenter", key))) {
+	        (0 != strcmp("reshape", key)) &&
+	        (0 != strcmp("update", key)) &&
+	        (0 != strcmp("visibility", key)) &&
+	        (0 != strcmp("keyboard", key)) &&
+	        (0 != strcmp("mousereleased", key)) &&
+	        (0 != strcmp("mousepressed", key)) &&
+	        (0 != strcmp("mousedrag", key)) &&
+	        (0 != strcmp("mousemove", key)) &&
+	        (0 != strcmp("mouseleave", key)) &&
+	        (0 != strcmp("mouseenter", key)))
+	{
 		return luaL_error(L, "Invalid key: %s", key);
 	}
 
@@ -375,10 +395,13 @@ static void _update()
 
 	lua_pushstring(LUA, "update");
 	lua_rawget(LUA, -3);
-	if (lua_isfunction(LUA, -1)) {
+	if (lua_isfunction(LUA, -1))
+	{
 		lua_pushnumber(LUA, time - lasttime);
 		lua_call(LUA, 1, 0);
-	} else {
+	}
+	else
+	{
 		lua_pop(LUA, 1);
 	}
 
@@ -413,29 +436,73 @@ static void _special(int key, int x, int y)
 		return;
 
 	const char* name;
-	switch (key) {
-		case GLUT_KEY_F1:        name = "F1"; break;
-		case GLUT_KEY_F2:        name = "F2"; break;
-		case GLUT_KEY_F3:        name = "F3"; break;
-		case GLUT_KEY_F4:        name = "F4"; break;
-		case GLUT_KEY_F5:        name = "F5"; break;
-		case GLUT_KEY_F6:        name = "F6"; break;
-		case GLUT_KEY_F7:        name = "F7"; break;
-		case GLUT_KEY_F8:        name = "F8"; break;
-		case GLUT_KEY_F9:        name = "F9"; break;
-		case GLUT_KEY_F10:       name = "F10"; break;
-		case GLUT_KEY_F11:       name = "F11"; break;
-		case GLUT_KEY_F12:       name = "F12"; break;
-		case GLUT_KEY_LEFT:      name = "left"; break;
-		case GLUT_KEY_UP:        name = "up"; break;
-		case GLUT_KEY_RIGHT:     name = "right"; break;
-		case GLUT_KEY_DOWN:      name = "down"; break;
-		case GLUT_KEY_PAGE_UP:   name = "pageup"; break;
-		case GLUT_KEY_PAGE_DOWN: name = "pagedown"; break;
-		case GLUT_KEY_HOME:      name = "home"; break;
-		case GLUT_KEY_END:       name = "end"; break;
-		case GLUT_KEY_INSERT:    name = "insert"; break;
-		default:                 name = "unknown";
+	switch (key)
+	{
+	case GLUT_KEY_F1:
+		name = "F1";
+		break;
+	case GLUT_KEY_F2:
+		name = "F2";
+		break;
+	case GLUT_KEY_F3:
+		name = "F3";
+		break;
+	case GLUT_KEY_F4:
+		name = "F4";
+		break;
+	case GLUT_KEY_F5:
+		name = "F5";
+		break;
+	case GLUT_KEY_F6:
+		name = "F6";
+		break;
+	case GLUT_KEY_F7:
+		name = "F7";
+		break;
+	case GLUT_KEY_F8:
+		name = "F8";
+		break;
+	case GLUT_KEY_F9:
+		name = "F9";
+		break;
+	case GLUT_KEY_F10:
+		name = "F10";
+		break;
+	case GLUT_KEY_F11:
+		name = "F11";
+		break;
+	case GLUT_KEY_F12:
+		name = "F12";
+		break;
+	case GLUT_KEY_LEFT:
+		name = "left";
+		break;
+	case GLUT_KEY_UP:
+		name = "up";
+		break;
+	case GLUT_KEY_RIGHT:
+		name = "right";
+		break;
+	case GLUT_KEY_DOWN:
+		name = "down";
+		break;
+	case GLUT_KEY_PAGE_UP:
+		name = "pageup";
+		break;
+	case GLUT_KEY_PAGE_DOWN:
+		name = "pagedown";
+		break;
+	case GLUT_KEY_HOME:
+		name = "home";
+		break;
+	case GLUT_KEY_END:
+		name = "end";
+		break;
+	case GLUT_KEY_INSERT:
+		name = "insert";
+		break;
+	default:
+		name = "unknown";
 	}
 
 	lua_pushstring(LUA, name);
@@ -456,11 +523,19 @@ static void _mouse(int button, int status, int x, int y)
 		return;
 
 	const char* name;
-	switch (button) {
-		case GLUT_LEFT_BUTTON:   name = "left"; break;
-		case GLUT_MIDDLE_BUTTON: name = "middle"; break;
-		case GLUT_RIGHT_BUTTON:  name = "right"; break;
-		default:                 name = "unknown";
+	switch (button)
+	{
+	case GLUT_LEFT_BUTTON:
+		name = "left";
+		break;
+	case GLUT_MIDDLE_BUTTON:
+		name = "middle";
+		break;
+	case GLUT_RIGHT_BUTTON:
+		name = "right";
+		break;
+	default:
+		name = "unknown";
 	}
 
 	lua_pushinteger(LUA, x);

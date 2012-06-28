@@ -3,13 +3,15 @@
 
 struct lua_State;
 
-typedef struct {
+typedef struct
+{
 	int width;
 	int height;
 	void* data;
 } image;
 
-typedef struct {
+typedef struct
+{
 	unsigned char r;
 	unsigned char g;
 	unsigned char b;
