@@ -9,18 +9,28 @@ endif()
 
 if(APPLE)
 	set(CMAKE_FIND_FRAMEWORK LAST)
-endif(APPLE)
+endif()
 
 if(NOT WIN32) 
 	set(CMAKE_SHARED_MODULE_PREFIX "")
 	set(CMAKE_SHARED_MODULE_SUFFIX ".so")
-endif(NOT WIN32)
+endif()
 
 find_package(Lua51  REQUIRED)
 find_package(OpenGL REQUIRED)
 find_package(GLUT   REQUIRED)
 find_package(PNG    REQUIRED)
-find_package(JPEG   REQUIRED)
+
+#find libjpeg-turbo
+find_path(TJPEG_INCLUDE_DIR turbojpeg.h HINTS ${PNG_INCLUDE_DIR})
+find_library(TJPEG_LIBRARY NAMES turbojpeg)
+
+include(FindPackageHandleStandardArgs)
+find_package_handle_standard_args(TJPEG DEFAULT_MSG TJPEG_LIBRARY TJPEG_INCLUDE_DIR)
+
+if(TJPEG_FOUND)
+	set(TJPEG_LIBRARIES ${TJPEG_LIBRARY})
+endif()
 
 #find GLEW
 find_path(GLEW_INCLUDE_DIR glew.h
@@ -53,14 +63,14 @@ mark_as_advanced(GLEW_LIBRARIES)
 
 if(NOT GLEW_INCLUDE_DIR OR NOT GLEW_LIBRARIES)
 	message(FATAL_ERROR "Cannot find GLEW")
-endif(NOT GLEW_INCLUDE_DIR OR NOT GLEW_LIBRARIES)
+endif()
 
 include_directories(
 	${OPENGL_INCLUDE_DIR}
 	${GLEW_INCLUDE_DIR}
 	${GLUT_INCLUDE_DIR}
 	${PNG_INCLUDE_DIR}
-	${JPEG_INCLUDE_DIR}
+	${TJPEG_INCLUDE_DIR}
 	${LUA_INCLUDE_DIR})
 
 file(GLOB SOURCES src/*.c)
@@ -73,4 +83,4 @@ target_link_libraries(G4L
 	${GLUT_LIBRARIES}
 	${GLEW_LIBRARIES}
 	${PNG_LIBRARIES}
-	${JPEG_LIBRARIES})
+	${TJPEG_LIBRARIES})

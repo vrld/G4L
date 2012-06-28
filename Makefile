@@ -1,7 +1,7 @@
 CC=clang
 INCLUDES=-I/usr/include/GL
-CFLAGS=-fPIC --std=c99 -fomit-frame-pointer -Wall -Wextra -Wformat -O0 -g $(INCLUDES)
-LDFLAGS=-lc -lglut -lGLEW -lGL -lz -lpng -ljpeg
+CFLAGS=-fPIC --std=c99 -fomit-frame-pointer -Wall -Wextra -Wformat -pedantic -O0 -g $(INCLUDES)
+LDFLAGS=-lc -lglut -lGLEW -lGL -lz -lpng -lturbojpeg
 
 sources=$(wildcard src/*.c)
 objects=$(sources:.c=.o)
