@@ -167,13 +167,6 @@ static void push_image_from_dimensions(lua_State *L)
 		luaL_error(L, "Cannot allocate image memory");
 }
 
-typedef enum
-{
-    DECODE_OK,
-    DECODE_ERR,
-    DECODE_WRONG_FORMAT
-} decode_status;
-
 typedef struct encoded_info
 {
 	size_t size;
@@ -188,20 +181,24 @@ typedef struct decoded_info
 	void *data;
 } decoded_info;
 
-// on success, return DECODE_OK
-// on format mismatch, return DECODE_WRONG_FORMAT
-// on error, push error message and return DECODE_ERR
-static decode_status _decode_png(lua_State *L, encoded_info *encoded, decoded_info *decoded);
-static decode_status _decode_jpeg(lua_State *L, encoded_info *encoded, decoded_info *decoded);
+static int _decode_png(lua_State *L, encoded_info *encoded, decoded_info *decoded);
+static int _decode_jpeg(lua_State *L, encoded_info *encoded, decoded_info *decoded);
 
 static void push_image_from_buffer(lua_State *L, encoded_info *encoded)
 {
 	decoded_info decoded = {0,0, NULL};
-	decode_status status = _decode_png(L, encoded, &decoded);
-	if (DECODE_WRONG_FORMAT == status)
+
+	png_byte signature[8];
+	memcpy(signature, encoded->data, 8);
+	int is_png = !png_sig_cmp(signature, 0, 8);
+
+	int status;
+	if (0 == is_png)
+		status = _decode_png(L, encoded, &decoded);
+	else
 		status = _decode_jpeg(L, encoded, &decoded);
 
-	if (DECODE_ERR == status)
+	if (0 != status)
 		luaL_error(L, "Error decoding image: %s", lua_tostring(L, -1));
 
 	image *img = (image *)lua_newuserdata(L, sizeof(image));
@@ -260,14 +257,8 @@ static void _png_read_data_function(png_structp reader, png_bytep data, png_size
 	info->pos += length;
 }
 
-static decode_status _decode_png(lua_State *L, encoded_info *encoded, decoded_info *decoded)
+static int _decode_png(lua_State *L, encoded_info *encoded, decoded_info *decoded)
 {
-	png_byte signature[8];
-	memcpy(signature, encoded->data, 8);
-	int is_png = !png_sig_cmp(signature, 0, 8);
-	if (0 == is_png)
-		return DECODE_WRONG_FORMAT;
-
 	png_structp reader = NULL;
 	png_infop info     = NULL;
 
@@ -326,6 +317,12 @@ static decode_status _decode_png(lua_State *L, encoded_info *encoded, decoded_in
 	}
 
 	png_bytep *rows = (png_bytep *)malloc(sizeof(png_bytep) * decoded->height);
+	if (setjmp(png_jmpbuf(reader)))
+	{
+		free(rows);
+		goto error;
+	}
+
 	for (png_uint_32 i = 0; i < (png_uint_32)decoded->height; ++i)
 		rows[i] = (png_byte *)(decoded->data) + i * rowbytes;
 
@@ -334,7 +331,7 @@ static decode_status _decode_png(lua_State *L, encoded_info *encoded, decoded_in
 	free(rows);
 
 	// stuff to return
-	return DECODE_OK;
+	return 0;
 
 error:
 	if (NULL != decoded->data)
@@ -346,19 +343,16 @@ error:
 	    (NULL != reader) ? &reader : (png_structpp)NULL,
 	    (NULL != info)   ? &info   : (png_infopp)NULL,
 	    (png_infopp)NULL);
-	return DECODE_ERR;
+	return 1;
 }
 
 
 //// JPEG DECODING ////
-static decode_status _decode_jpeg(lua_State *L, encoded_info *encoded, decoded_info *decoded)
+static int _decode_jpeg(lua_State *L, encoded_info *encoded, decoded_info *decoded)
 {
 	tjhandle jpeg = tjInitDecompress();
 	if (NULL == jpeg)
-	{
-		lua_pushstring(L, tjGetErrorStr());
-		return DECODE_ERR;
-	}
+		goto error;
 
 	int status;
 	int unused;
@@ -366,10 +360,7 @@ static decode_status _decode_jpeg(lua_State *L, encoded_info *encoded, decoded_i
 	                             (unsigned char *)encoded->data, encoded->size,
 	                             &(decoded->width), &(decoded->height), &unused);
 	if (0 != status)
-	{
-		lua_pushstring(L, tjGetErrorStr());
-		return DECODE_ERR;
-	}
+		goto error;
 
 	decoded->data = malloc(sizeof(char) * 4 * decoded->width * decoded->height);
 	status = tjDecompress2(jpeg,
@@ -377,10 +368,13 @@ static decode_status _decode_jpeg(lua_State *L, encoded_info *encoded, decoded_i
 	                       decoded->data, 0, 0, 0,
 	                       TJPF_RGBA, 0);
 	if (0 != status)
-	{
-		lua_pushstring(L, tjGetErrorStr());
-		return DECODE_ERR;
-	}
+		goto error;
 
-	return DECODE_OK;
+	tjFree(jpeg);
+	return 0;
+
+error:
+	if (NULL != jpeg) tjFree(jpeg);
+	lua_pushstring(L, tjGetErrorStr());
+	return 1;
 }
