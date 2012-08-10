@@ -125,15 +125,17 @@ static int l_image___gc(lua_State *L)
 	return 0;
 }
 
-static void push_image_from_dimensions(lua_State *L);
-static void push_image_from_file(lua_State *L);
+static void push_image_from_dimensions(lua_State *L, int idx);
+static void push_image_from_string(lua_State *L, int idx);
 
 int l_image_new(lua_State *L)
 {
 	if (lua_isnumber(L,1))
-		push_image_from_dimensions(L);
+		push_image_from_dimensions(L, 1);
+	else if (lua_isstring(L,1))
+		push_image_from_string(L, 1);
 	else
-		push_image_from_file(L);
+		return luaL_argerror(L, 1, "expected `number' or `string'");
 
 	if (luaL_newmetatable(L, INTERNAL_NAME))
 	{
@@ -152,10 +154,10 @@ int l_image_new(lua_State *L)
 	return 1;
 }
 
-static void push_image_from_dimensions(lua_State *L)
+static void push_image_from_dimensions(lua_State *L, int idx)
 {
-	int w = luaL_checkinteger(L, 1);
-	int h = luaL_checkinteger(L, 2);
+	int w = luaL_checkinteger(L, idx);
+	int h = luaL_checkinteger(L, idx+1);
 
 	image *img = (image *)lua_newuserdata(L, sizeof(image));
 	img->width  = w;
@@ -184,19 +186,21 @@ typedef struct decoded_info
 static int _decode_png(lua_State *L, encoded_info *encoded, decoded_info *decoded);
 static int _decode_jpeg(lua_State *L, encoded_info *encoded, decoded_info *decoded);
 
-static void push_image_from_buffer(lua_State *L, encoded_info *encoded)
+static void push_image_from_string(lua_State *L, int idx)
 {
+	encoded_info encoded = {0,0, NULL};
 	decoded_info decoded = {0,0, NULL};
+	encoded.data = (void*)lua_tolstring(L, idx, &encoded.size);
 
 	png_byte signature[8];
-	memcpy(signature, encoded->data, 8);
-	int is_png = !png_sig_cmp(signature, 0, 8);
+	memcpy(signature, encoded.data, 8);
+	int is_png = png_sig_cmp(signature, 0, 8);
 
 	int status;
 	if (0 == is_png)
-		status = _decode_png(L, encoded, &decoded);
+		status = _decode_png(L, &encoded, &decoded);
 	else
-		status = _decode_jpeg(L, encoded, &decoded);
+		status = _decode_jpeg(L, &encoded, &decoded);
 
 	if (0 != status)
 		luaL_error(L, "Error decoding image: %s", lua_tostring(L, -1));
@@ -205,33 +209,6 @@ static void push_image_from_buffer(lua_State *L, encoded_info *encoded)
 	img->width  = decoded.width;
 	img->height = decoded.height;
 	img->data   = decoded.data;
-}
-
-static void push_image_from_file(lua_State *L)
-{
-	encoded_info encoded = {0,0, NULL};
-	const char *path = luaL_checkstring(L, 1);
-	FILE *fp = fopen(path, "rb");
-
-	if (NULL == fp)
-		luaL_error(L, "Cannot open file `%s' for reading", path);
-
-	fseek(fp, 0, SEEK_END);
-	encoded.size = ftell(fp);
-	fseek(fp, 0, SEEK_SET);
-
-	encoded.data = malloc(encoded.size);
-	if (NULL == encoded.data)
-	{
-		fclose(fp);
-		luaL_error(L, "Out of memory");
-	}
-
-	fread(encoded.data, sizeof(char), encoded.size, fp);
-	fclose(fp);
-
-	push_image_from_buffer(L, &encoded);
-	free(encoded.data);
 }
 
 //// PNG DECODING ////
@@ -330,6 +307,11 @@ static int _decode_png(lua_State *L, encoded_info *encoded, decoded_info *decode
 	png_read_image(reader, rows);
 	free(rows);
 
+	png_destroy_read_struct(
+	    (NULL != reader) ? &reader : (png_structpp)NULL,
+	    (NULL != info)   ? &info   : (png_infopp)NULL,
+	    (png_infopp)NULL);
+
 	// stuff to return
 	return 0;
 
@@ -352,7 +334,7 @@ static int _decode_jpeg(lua_State *L, encoded_info *encoded, decoded_info *decod
 {
 	tjhandle jpeg = tjInitDecompress();
 	if (NULL == jpeg)
-		goto error;
+		goto emit_error;
 
 	int status;
 	int unused;
@@ -370,11 +352,12 @@ static int _decode_jpeg(lua_State *L, encoded_info *encoded, decoded_info *decod
 	if (0 != status)
 		goto error;
 
-	tjFree(jpeg);
+	tjDestroy(jpeg);
 	return 0;
 
 error:
-	if (NULL != jpeg) tjFree(jpeg);
+	tjDestroy(jpeg);
+emit_error:
 	lua_pushstring(L, tjGetErrorStr());
 	return 1;
 }

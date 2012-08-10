@@ -18,7 +18,7 @@ typedef struct
 	unsigned char a;
 } rgba_pixel;
 
-image* l_checkimage(struct lua_State* L, int idx);
-int l_image_new(struct lua_State* L);
+image* l_checkimage(struct lua_State *L, int idx);
+int l_image_new(struct lua_State *L);
 
 #endif
