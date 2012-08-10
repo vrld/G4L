@@ -269,6 +269,32 @@ static int l_elapsed(lua_State* L)
 	return 1;
 }
 
+static int l_readFile(lua_State* L)
+{
+	// try to read from file
+	const char *path = luaL_checkstring(L, 1);
+	FILE *fp;
+	if (NULL == (fp = fopen(path, "rb")))
+		return luaL_error(L, "Cannot open `%s' for reading", path);
+
+	fseek(fp, 0, SEEK_END);
+	size_t bytes = ftell(fp);
+	fseek(fp, 0, SEEK_SET);
+
+	char *buf = malloc(bytes);
+	size_t read = fread(buf, 1, bytes, fp);
+	fclose(fp);
+
+	lua_pushlstring(L, buf, read);
+	free(buf);
+
+	if (read != bytes)
+		return luaL_error(L, "Error reading `%s': Expected to read %lu byte,"\
+				"got only %lu", path, bytes, read);
+
+	return 1;
+}
+
 int luaopen_G4L(lua_State* L)
 {
 	if (LUA != NULL)
@@ -307,6 +333,9 @@ int luaopen_G4L(lua_State* L)
 		{"setShader",      l_shader_set},
 		{"texture",        l_texture_new},
 		{"image",          l_image_new},
+
+		// util
+		{"readFile",       l_readFile},
 
 		{NULL, NULL}
 	};
