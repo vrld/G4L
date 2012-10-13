@@ -81,10 +81,72 @@ Prototyping/visualizations/live coding/awesome
 
 ### Buffer Objects
 
-    buffer = g4l.vbo([record-size, target, usage, initial_size])
-    buffer = buffer:push(record, [...]) -- record = {a,b,c,...} with #record = record-size OR record = number if record-size == 1
-    buffer = buffer:clear()
-    buffer = buffer:finish()
+    buffer = g4l.bufferobject([target, [usage, [element_type]]], elements)
+        where `target' is one of
+            * g4l.buffer.array_buffer (default),
+            * g4l.buffer.copy_read_buffer,
+            * g4l.buffer.copy_write_buffer,
+            * g4l.buffer.element_array_buffer,
+            * g4l.buffer.pixel_pack_buffer,
+            * g4l.buffer.pixel_unpack_buffer,
+            * g4l.buffer.texture_buffer,
+            * g4l.buffer.transform_feedback_buffer,
+            * g4l.buffer.uniform_buffer,
+        
+        `usage' is one of
+            * g4l.buffer.static_draw (default),
+            * g4l.buffer.static_read,
+            * g4l.buffer.static_copy,
+            * g4l.buffer.stream_draw,
+            * g4l.buffer.stream_read,
+            * g4l.buffer.stream_copy,
+            * g4l.buffer.dynamic_draw,
+            * g4l.buffer.dynamic_read,
+            * g4l.buffer.dynamic_copy
+        
+        `element_type' is one of
+            * g4l.buffer.byte,
+            * g4l.buffer.ubyte,
+            * g4l.buffer.short,
+            * g4l.buffer.ushort,
+            * g4l.buffer.int,
+            * g4l.buffer.uint,
+            * g4l.buffer.float (default),
+            * g4l.buffer.double
+        
+        and `elements' is a table of buffer elements.
+
+    Example:
+
+        vbo = g4l.bufferobject{
+        --   x  y  z   r g b   u v
+            -1,-1, 1,  0,0,1,  0,0,
+             1,-1, 1,  1,0,1,  1,0,
+             1, 1, 1,  1,1,1,  1,1,
+            -1, 1, 1,  0,1,1,  0,1,
+            -1,-1,-1,  0,0,0,  0,0,
+             1,-1,-1,  1,0,0,  1,0,
+             1, 1,-1,  1,1,0,  1,1,
+            -1, 1,-1,  0,1,0,  0,1
+        }
+
+        ibo = g4l.bufferobject(
+            g4l.buffer.element_array_buffer,
+            g4l.buffer.static_draw,
+            g4l.buffer.ushort, {
+            0,1,2,  2,3,0, -- front
+            1,5,6,  6,2,1, -- top
+            7,6,5,  5,4,7, -- back
+            4,0,3,  3,7,4, -- bottom
+            4,5,1,  1,0,4, -- left
+            3,2,6,  6,7,3 -- right
+        })
+
+
+    buffer:update([offset], elements)
+        where `offset' is an optional starting index and
+        `elements' is a table of buffer elements.
+
     buffer:draw(draw_mode)
 
 ### Framebuffer Objects
@@ -317,15 +379,32 @@ Corresponding to the g4l\_ and g4lUT\_ counterparts.
 
 ### g4l.buffer
 
-    stream_draw
-    stream_read
-    stream_copy
-    static_draw
-    static_read
-    static_copy
-    dynamic_draw
-    dynamic_read
+    array_buffer,
+    copy_read_buffer,
+    copy_write_buffer,
+    element_array_buffer,
+    pixel_pack_buffer,
+    pixel_unpack_buffer,
+    texture_buffer,
+    transform_feedback_buffer,
+    uniform_buffer,
+    static_draw,
+    static_read,
+    static_copy,
+    stream_draw,
+    stream_read,
+    stream_copy,
+    dynamic_draw,
+    dynamic_read,
     dynamic_copy
+    byte,
+    ubyte,
+    short,
+    ushort,
+    int,
+    uint,
+    float,
+    double
 
 ### g4l.blend
 
