@@ -77,7 +77,6 @@ static void fill_buffer_with_table(lua_State* L, bufferobject* b, int idx, int o
 	}
 	else
 	{
-		printf("size_old = %d, size_new = %d, offset = %d\n", size_old, size_new, offset);
 		// new data extends buffer. bollux.
 		void* new_data = malloc(size_new + offset);
 		if (NULL == new_data)

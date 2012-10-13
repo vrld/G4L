@@ -185,7 +185,6 @@ int l_framebuffer_new(lua_State* L)
 	// make renderbuffer unless otherwise requested
 	if (lua_isnone(L, 3) || lua_toboolean(L, 3))
 	{
-		printf("make renderbuffer\n");
 		glGenRenderbuffers(1, &renderbuffer);
 		glBindRenderbuffer(GL_RENDERBUFFER, renderbuffer);
 		glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_STENCIL, width, height);
